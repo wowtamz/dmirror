@@ -87,13 +87,13 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           cd build
-          tar -czf ${{ env.APP_NAME }}_${{ runner.os }}.tar.gz bin
+          tar -czf ${{ env.APP_NAME }}_${{ runner.os }}.tar.gz -C bin .
 
       - name: Package Windows binaries
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Compress-Archive -Path build/bin/* -DestinationPath build/${{ env.APP_NAME }}_${{ runner.os }}.zip
+          Compress-Archive -Path build/bin/Release/* -DestinationPath build/${{ env.APP_NAME }}_${{ runner.os }}.zip
 
       - name: Upload unix binaries
         if: runner.os != 'Windows'
