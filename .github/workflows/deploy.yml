@@ -87,7 +87,7 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           cd build
-          tar -czf ${{ env.APP_NAME }}_${{ runner.os }}.tar.gz -C bin .
+          tar -czf ${{ env.APP_NAME }}_${{ runner.os }}.tar.gz -C bin *
 
       - name: Package Windows binaries
         if: runner.os == 'Windows'
