@@ -5,21 +5,8 @@
 #include "menu_bar.h"
 
 #include "icon.h"
-
-wxBitmap LoadBitmapFromResource(const unsigned char* data, unsigned int size)
-{
-    wxMemoryInputStream stream(data, size);
-    wxImage image(stream, wxBITMAP_TYPE_PNG);
-
-    if (image.IsOk())
-    {
-        return wxBitmap(image);
-    }
-    else
-    {
-        return wxNullBitmap;
-    }
-}
+#include "dialog/about_dialog.h"
+#include "../util/image.h"
 
 MainFrame::MainFrame()
     : wxFrame(nullptr, wxID_ANY, "DMirror", wxDefaultPosition, wxSize(512, 256))
@@ -69,30 +56,6 @@ void MainFrame::OnExit(wxCommandEvent& event)
 
 void MainFrame::OnAbout(wxCommandEvent& event)
 {
-    wxDialog dialog(this, wxID_ANY, "About", wxDefaultPosition, wxSize(400, 200));
-
-    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-
-    wxBitmap bitmap = LoadBitmapFromResource(icon_png, icon_png_len);
-
-    sizer->Add(new wxStaticBitmap(&dialog, wxID_ANY, bitmap), 0, wxALIGN_CENTER | wxALL, 10);
-
-    wxStaticText* title = new wxStaticText(&dialog, wxID_ANY, "DMirror");
-    wxFont titleFont = title->GetFont();
-    titleFont.SetPointSize(18);
-    title->SetFont(titleFont);
-    title->Wrap(300);
-    sizer->Add(title, 0, wxALIGN_CENTER | wxALL, 10);
-
-    wxStaticText* author = new wxStaticText(&dialog, wxID_ANY, "by Tamas Henninger-Varadi");
-    sizer->Add(author, 0, wxALIGN_CENTER | wxALL, 10);
-
-    wxStaticText* description = new wxStaticText(&dialog, wxID_ANY, "DMirror is a simple data backup tool that allows you to easily copy files and folders from one location to another.");
-    description->Wrap(300); // Wrap the text to fit within 300 pixels
-    sizer->Add(description, 0, wxALIGN_CENTER | wxALL, 10);
-
-    sizer->Add(new wxButton(&dialog, wxID_OK, "OK"), 0, wxALIGN_CENTER | wxALL, 10);
-
-    dialog.SetSizerAndFit(sizer);
+    AboutDialog dialog(this);
     dialog.ShowModal();
 }

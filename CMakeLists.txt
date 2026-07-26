@@ -13,9 +13,7 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
 )
 
-list(APPEND SOURCES
-    src/resources/icon.h
-)
+list(APPEND SOURCES)
 
 # Prefer the Config package (vcpkg, Homebrew), otherwise fall back
 # to the Find module (Ubuntu, Debian, etc.)
