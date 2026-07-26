@@ -9,15 +9,22 @@ if(MSVC)
         "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+)
+
+list(APPEND SOURCES
+    src/resources/icon.h
+)
+
 # Prefer the Config package (vcpkg, Homebrew), otherwise fall back
 # to the Find module (Ubuntu, Debian, etc.)
 find_package(wxWidgets CONFIG QUIET)
 
 if(wxWidgets_FOUND)
     add_executable(DMirror WIN32
-        src/main.cpp
+        ${SOURCES}
         src/platform/windows/app.rc
-        src/resources/icon.h
     )
 
     target_link_libraries(DMirror PRIVATE
@@ -28,11 +35,13 @@ else()
     find_package(wxWidgets REQUIRED COMPONENTS core base)
     include(${wxWidgets_USE_FILE})
 
-    add_executable(DMirror
-        src/main.cpp
-        src/resources/icon.h
-    )
+    add_executable(DMirror ${SOURCES})
 
     target_link_libraries(DMirror PRIVATE ${wxWidgets_LIBRARIES})
     target_compile_definitions(DMirror PRIVATE ${wxWidgets_DEFINITIONS})
 endif()
+
+target_include_directories(DMirror PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/resources
+)
