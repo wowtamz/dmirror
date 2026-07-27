@@ -100,7 +100,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.APP_NAME }}_${{ runner.os }}
-          path: build/${{ env.APP_NAME }}_${{ runner.os }}.tar.gz
+          path: build/bin/${{ env.APP_NAME }}_${{ runner.os }}.tar.gz
           if-no-files-found: error
 
       - name: Upload Windows binaries
