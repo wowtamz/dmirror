@@ -92,7 +92,8 @@ jobs:
           $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
           $visualStudio = & $vswhere -latest -property installationPath
           $redist = Get-ChildItem "$visualStudio/VC/Redist/MSVC" -Directory |
-            Sort-Object Name -Descending |
+            Where-Object { $_.Name -match '^\d+(\.\d+)+$' } |
+            Sort-Object { [version]$_.Name } -Descending |
             Select-Object -First 1
           $crt = Get-ChildItem "$($redist.FullName)/x64" -Directory -Filter "Microsoft.VC*.CRT" |
             Sort-Object Name -Descending |
