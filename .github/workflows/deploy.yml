@@ -6,6 +6,7 @@ on:
       - main
       - dev
       - release/*
+      - ci/*
     tags:
       - 'v*'
   pull_request:
@@ -13,6 +14,7 @@ on:
       - main
       - dev
       - release/*
+      - ci/*
 
 env:
   APP_NAME: dmirror
@@ -25,7 +27,7 @@ jobs:
       image: debian:stable-slim
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install dependencies
         run: |
@@ -56,7 +58,7 @@ jobs:
     continue-on-error: ${{ matrix.os == 'windows-latest' }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install dependencies (Ubuntu)
         if: runner.os == 'Linux'
@@ -72,13 +74,59 @@ jobs:
         run: |
           brew install wxwidgets
 
-      - name: Install dependencies (Windows)
+      - name: Install official wxWidgets binaries (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
-          vcpkg install wxwidgets:x64-windows-static
-          echo "CMAKE_ARGS=-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static" >> $env:GITHUB_ENV
+          $wxRoot = Join-Path "${{ runner.temp }}" "wxWidgets"
+          $runtimeRoot = Join-Path "${{ runner.temp }}" "wxWidgets-runtime"
+          $downloadRoot = Join-Path "${{ runner.temp }}" "wxWidgets-downloads"
+          New-Item -ItemType Directory -Force $wxRoot, $runtimeRoot, $downloadRoot | Out-Null
+
+          function Install-WxArchive {
+            param(
+              [string] $Name,
+              [string] $Sha256,
+              [string] $Destination
+            )
+
+            $archive = Join-Path $downloadRoot $Name
+            $url = "https://github.com/wxWidgets/wxWidgets/releases/download/v$env:WX_VERSION/$Name"
+            curl.exe -L --fail --retry 3 --output $archive $url
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to download $Name"
+            }
+
+            $actualSha256 = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actualSha256 -ne $Sha256) {
+              throw "Checksum verification failed for $Name"
+            }
+
+            7z.exe x $archive -y "-o$Destination" | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to extract $Name"
+            }
+          }
+
+          Install-WxArchive `
+            "wxWidgets-$env:WX_VERSION-headers.7z" `
+            $env:WX_HEADERS_SHA256 `
+            $wxRoot
+          Install-WxArchive `
+            "wxMSW-${env:WX_VERSION}_vc14x_x64_Dev.7z" `
+            $env:WX_DEV_SHA256 `
+            $wxRoot
+          Install-WxArchive `
+            "wxMSW-${env:WX_VERSION}_vc14x_x64_ReleaseDLL.7z" `
+            $env:WX_RUNTIME_SHA256 `
+            $runtimeRoot
+
+          $wxRoot = $wxRoot.Replace('\', '/')
+          $wxRuntime = (Join-Path $runtimeRoot "lib/vc14x_x64_dll").Replace('\', '/')
+          $wxLicense = (Join-Path $runtimeRoot "licence.txt").Replace('\', '/')
+          "CMAKE_ARGS=-DBUILD_SHARED_LIBS=ON -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL -DwxWidgets_ROOT_DIR=$wxRoot -DwxWidgets_LIB_DIR=$wxRoot/lib/vc14x_x64_dll -DwxWidgets_CONFIGURATION=mswu" >> $env:GITHUB_ENV
+          "WX_RUNTIME_DIR=$wxRuntime" >> $env:GITHUB_ENV
+          "WX_LICENSE_FILE=$wxLicense" >> $env:GITHUB_ENV
 
       - name: Build
         run: make
@@ -89,23 +137,38 @@ jobs:
           cd build/bin
           tar -czf ${{ env.APP_NAME }}_${{ runner.os }}.tar.gz DMirror
 
-      - name: Package Windows binaries
-        if: runner.os == 'Windows'
+      - name: Package Windows binary and runtime DLLs
         shell: pwsh
         run: |
-          Compress-Archive -Path build/bin/Release/* -DestinationPath build/${{ env.APP_NAME }}_${{ runner.os }}.zip
+          $output = "build/bin/Release"
+          Copy-Item "$env:WX_RUNTIME_DIR/*.dll" $output
+          Copy-Item $env:WX_LICENSE_FILE "$output/wxWidgets-LICENSE.txt"
+
+          $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
+          $visualStudio = & $vswhere -latest -property installationPath
+          $redist = Get-ChildItem "$visualStudio/VC/Redist/MSVC" -Directory |
+            Where-Object { $_.Name -match '^\d+(\.\d+)+$' } |
+            Sort-Object { [version]$_.Name } -Descending |
+            Select-Object -First 1
+          $crt = Get-ChildItem "$($redist.FullName)/x64" -Directory -Filter "Microsoft.VC*.CRT" |
+            Sort-Object Name -Descending |
+            Select-Object -First 1
+          Copy-Item "$($crt.FullName)/*.dll" $output
+
+          Compress-Archive `
+            -Path "$output/*" `
+            -DestinationPath "build/${{ env.APP_NAME }}_${{ runner.os }}.zip"
 
       - name: Upload unix binaries
         if: runner.os != 'Windows'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.APP_NAME }}_${{ runner.os }}
           path: build/bin/${{ env.APP_NAME }}_${{ runner.os }}.tar.gz
           if-no-files-found: error
 
-      - name: Upload Windows binaries
-        if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
+      - name: Upload Windows binary
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.APP_NAME }}_${{ runner.os }}
           path: build/${{ env.APP_NAME }}_${{ runner.os }}.zip
@@ -116,17 +179,21 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
 
+    concurrency:
+      group: publish-${{ github.ref }}
+      cancel-in-progress: false
+
     permissions:
       contents: write
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             artifacts/**/*

@@ -3,7 +3,7 @@ name: Windows Deployment (Official wxWidgets)
 on:
   push:
     branches:
-      - ci/*
+      - disabled
     
 
 env:
@@ -108,5 +108,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.APP_NAME }}_Windows_no-cache
-          path: build/${{ env.APP_NAME }}_Windows_no-cache.zip
+          path: build/${{ env.APP_NAME }}_Windows.zip
           if-no-files-found: error
