@@ -1,126 +1,111 @@
-name: Continuous Deployment
+name: Windows Deployment (Official wxWidgets)
 
 on:
   push:
     branches:
       - ci/*
+    
 
 env:
   APP_NAME: dmirror
+  WX_VERSION: 3.2.11
+  WX_HEADERS_SHA256: 886de90e6f428f268541e395b18261126476288fedfb87c147ea8ab426059d77
+  WX_DEV_SHA256: 6fe8681737f5b6b1b06eeb6a33984c09d96b0ad570f9b0569b471000484c3105
+  WX_RUNTIME_SHA256: 342ef58e099ee85b4d95ae4168cab452142fd00c0b5b116f555ee2cf0d8ac02d
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    container:
-      image: debian:stable-slim
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Install dependencies
-        run: |
-          apt-get update
-          apt-get install -y \
-            build-essential \
-            cmake \
-            libwxgtk3.2-dev
-
-      - name: Build
-        run: make
-
-      - name: Run tests
-        run: make test
-
   build:
-    needs: test
+    runs-on: windows-latest
 
     permissions:
       contents: read
-      packages: write
-
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
-
-    runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.os == 'windows-latest' }}
 
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install dependencies (Ubuntu)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            cmake \
-            libwxgtk3.2-dev
-
-      - name: Install dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew install wxwidgets
-
-      - name: Configure vcpkg binary cache (Windows)
-        if: runner.os == 'Windows'
+      - name: Install official wxWidgets binaries
         shell: pwsh
-        env:
-          VCPKG_FEED_URL: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
         run: |
-          $nuget = (vcpkg fetch nuget | Select-Object -Last 1).Trim()
-          & $nuget sources add `
-            -Source $env:VCPKG_FEED_URL `
-            -StorePasswordInClearText `
-            -Name GitHubPackages `
-            -UserName "${{ github.actor }}" `
-            -Password "${{ secrets.GITHUB_TOKEN }}" `
-            -NonInteractive
-          & $nuget setapikey "${{ secrets.GITHUB_TOKEN }}" `
-            -Source $env:VCPKG_FEED_URL `
-            -NonInteractive
+          $wxRoot = Join-Path "${{ runner.temp }}" "wxWidgets"
+          $runtimeRoot = Join-Path "${{ runner.temp }}" "wxWidgets-runtime"
+          $downloadRoot = Join-Path "${{ runner.temp }}" "wxWidgets-downloads"
+          New-Item -ItemType Directory -Force $wxRoot, $runtimeRoot, $downloadRoot | Out-Null
 
-      - name: Install dependencies (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        env:
-          VCPKG_BINARY_SOURCES: clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,readwrite
-        run: |
-          vcpkg install wxwidgets:x64-windows-static
-          echo "CMAKE_ARGS=-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static" >> $env:GITHUB_ENV
+          function Install-WxArchive {
+            param(
+              [string] $Name,
+              [string] $Sha256,
+              [string] $Destination
+            )
+
+            $archive = Join-Path $downloadRoot $Name
+            $url = "https://github.com/wxWidgets/wxWidgets/releases/download/v$env:WX_VERSION/$Name"
+            curl.exe -L --fail --retry 3 --output $archive $url
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to download $Name"
+            }
+
+            $actualSha256 = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actualSha256 -ne $Sha256) {
+              throw "Checksum verification failed for $Name"
+            }
+
+            7z.exe x $archive -y "-o$Destination" | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to extract $Name"
+            }
+          }
+
+          Install-WxArchive `
+            "wxWidgets-$env:WX_VERSION-headers.7z" `
+            $env:WX_HEADERS_SHA256 `
+            $wxRoot
+          Install-WxArchive `
+            "wxMSW-${env:WX_VERSION}_vc14x_x64_Dev.7z" `
+            $env:WX_DEV_SHA256 `
+            $wxRoot
+          Install-WxArchive `
+            "wxMSW-${env:WX_VERSION}_vc14x_x64_ReleaseDLL.7z" `
+            $env:WX_RUNTIME_SHA256 `
+            $runtimeRoot
+
+          $wxRoot = $wxRoot.Replace('\', '/')
+          $wxRuntime = (Join-Path $runtimeRoot "lib/vc14x_x64_dll").Replace('\', '/')
+          $wxLicense = (Join-Path $runtimeRoot "licence.txt").Replace('\', '/')
+          "CMAKE_ARGS=-DBUILD_SHARED_LIBS=ON -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL -DwxWidgets_ROOT_DIR=$wxRoot -DwxWidgets_LIB_DIR=$wxRoot/lib/vc14x_x64_dll -DwxWidgets_CONFIGURATION=mswu" >> $env:GITHUB_ENV
+          "WX_RUNTIME_DIR=$wxRuntime" >> $env:GITHUB_ENV
+          "WX_LICENSE_FILE=$wxLicense" >> $env:GITHUB_ENV
 
       - name: Build
-        run: make
-
-      - name: Package unix binaries
-        if: runner.os != 'Windows'
-        run: |
-          cd build/bin
-          tar -czf ${{ env.APP_NAME }}_${{ runner.os }}.tar.gz DMirror
-
-      - name: Package Windows binaries
-        if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Compress-Archive -Path build/bin/Release/* -DestinationPath build/${{ env.APP_NAME }}_${{ runner.os }}.zip
+          Copy-Item CMakeLists-no-cache.txt CMakeLists.txt
+          make
 
-      - name: Upload unix binaries
-        if: runner.os != 'Windows'
+      - name: Package Windows binary and runtime DLLs
+        shell: pwsh
+        run: |
+          $output = "build/bin/Release"
+          Copy-Item "$env:WX_RUNTIME_DIR/*.dll" $output
+          Copy-Item $env:WX_LICENSE_FILE "$output/wxWidgets-LICENSE.txt"
+
+          $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
+          $visualStudio = & $vswhere -latest -property installationPath
+          $redist = Get-ChildItem "$visualStudio/VC/Redist/MSVC" -Directory |
+            Sort-Object Name -Descending |
+            Select-Object -First 1
+          $crt = Get-ChildItem "$($redist.FullName)/x64" -Directory -Filter "Microsoft.VC*.CRT" |
+            Sort-Object Name -Descending |
+            Select-Object -First 1
+          Copy-Item "$($crt.FullName)/*.dll" $output
+
+          Compress-Archive `
+            -Path "$output/*" `
+            -DestinationPath "build/${{ env.APP_NAME }}_Windows_no-cache.zip"
+
+      - name: Upload Windows binary
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ env.APP_NAME }}_${{ runner.os }}
-          path: build/bin/${{ env.APP_NAME }}_${{ runner.os }}.tar.gz
-          if-no-files-found: error
-
-      - name: Upload Windows binaries
-        if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ env.APP_NAME }}_${{ runner.os }}
-          path: build/${{ env.APP_NAME }}_${{ runner.os }}.zip
+          name: ${{ env.APP_NAME }}_Windows_no-cache
+          path: build/${{ env.APP_NAME }}_Windows_no-cache.zip
           if-no-files-found: error
