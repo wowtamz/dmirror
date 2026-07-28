@@ -79,7 +79,7 @@ jobs:
       - name: Build
         shell: pwsh
         run: |
-          Copy-Item CMakeLists-no-cache.txt CMakeLists.txt
+          Copy-Item CMakeLists.txt
           make
 
       - name: Package Windows binary and runtime DLLs
