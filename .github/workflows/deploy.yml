@@ -54,12 +54,13 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
+          - ubuntu-24.04
+          - macos-15-intel
+          - macos-15
+          - windows-2025
 
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.os == 'windows-latest' }}
+    continue-on-error: ${{ matrix.os == 'windows-2025' }}
 
     steps:
       - uses: actions/checkout@v7
@@ -139,7 +140,7 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           cd build/bin
-          tar -czf ${{ env.APP_NAME }}_${{ runner.os }}.tar.gz DMirror
+          tar -czf ${{ env.APP_NAME }}_${{ runner.os }}_${{runner.arch}}.tar.gz DMirror
 
       - name: Package Windows binary and runtime DLLs
         if: runner.os == 'Windows'
@@ -168,8 +169,8 @@ jobs:
         if: runner.os != 'Windows'
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ env.APP_NAME }}_${{ runner.os }}
-          path: build/bin/${{ env.APP_NAME }}_${{ runner.os }}.tar.gz
+          name: ${{ env.APP_NAME }}_${{ runner.os }}_${{runner.arch}}
+          path: build/bin/${{ env.APP_NAME }}_${{ runner.os }}_${{runner.arch}}.tar.gz
           if-no-files-found: error
 
       - name: Upload Windows binary
