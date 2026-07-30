@@ -55,6 +55,7 @@ jobs:
       matrix:
         os:
           - ubuntu-24.04
+          - ubuntu-24.04-arm
           - macos-15-intel
           - macos-15
           - windows-2025
@@ -147,6 +148,8 @@ jobs:
         shell: pwsh
         run: |
           $output = "build/bin/Release"
+          $packageRoot = "build/package"
+          $packageDirectory = "$packageRoot/DMirror"
           Copy-Item "$env:WX_RUNTIME_DIR/*.dll" $output
           Copy-Item $env:WX_LICENSE_FILE "$output/wxWidgets-LICENSE.txt"
 
@@ -161,8 +164,11 @@ jobs:
             Select-Object -First 1
           Copy-Item "$($crt.FullName)/*.dll" $output
 
+          New-Item -ItemType Directory -Force $packageDirectory | Out-Null
+          Copy-Item "$output/*" $packageDirectory -Recurse
+
           Compress-Archive `
-            -Path "$output/*" `
+            -Path $packageDirectory `
             -DestinationPath "build/${{ env.APP_NAME }}_${{ runner.os }}.zip"
 
       - name: Upload unix binaries
@@ -194,13 +200,26 @@ jobs:
       contents: write
 
     steps:
-      - name: Download all artifacts
+      - name: Download build artifacts
         uses: actions/download-artifact@v8
         with:
+          pattern: ${{ env.APP_NAME }}_*
+          merge-multiple: true
           path: artifacts
+
+      - name: Remove assets from an existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name' |
+              while IFS= read -r asset; do
+                gh release delete-asset "$GITHUB_REF_NAME" "$asset" --yes
+              done
+          fi
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          files: |
-            artifacts/**/*
+          fail_on_unmatched_files: true
+          files: artifacts/*
