@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 project(DMirror VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
+file(WRITE "${CMAKE_BINARY_DIR}/package-version.txt" "${PROJECT_VERSION}")
 
 if(MSVC AND NOT DEFINED CMAKE_MSVC_RUNTIME_LIBRARY)
     set(CMAKE_MSVC_RUNTIME_LIBRARY
@@ -55,6 +56,7 @@ if(WIN32)
     set(CPACK_CREATE_DESKTOP_LINKS "DMirror")
 elseif(APPLE)
     set(CPACK_GENERATOR "DragNDrop")
+    set(CPACK_SYSTEM_NAME "macOS-${CMAKE_SYSTEM_PROCESSOR}")
 elseif(UNIX)
     set(CPACK_GENERATOR "DEB")
     set(CPACK_DEBIAN_PACKAGE_NAME "dmirror")
@@ -71,6 +73,7 @@ set(CPACK_PACKAGE_DIRECTORY "${CMAKE_BINARY_DIR}/packages")
 
 if(WIN32)
     install(TARGETS DMirror RUNTIME DESTINATION .)
+    install(FILES README.md DESTINATION .)
 
     if(WX_RUNTIME_DIR)
         file(GLOB WX_RUNTIME_DLLS "${WX_RUNTIME_DIR}/*.dll")
@@ -96,6 +99,7 @@ if(WIN32)
     endif()
 elseif(APPLE)
     install(TARGETS DMirror BUNDLE DESTINATION .)
+    install(FILES README.md DESTINATION .)
 
     install(CODE [[
         include(BundleUtilities)
@@ -108,6 +112,7 @@ elseif(APPLE)
     ]])
 else()
     install(TARGETS DMirror RUNTIME DESTINATION bin)
+    install(FILES README.md DESTINATION share/doc/dmirror)
 endif()
 
 include(CPack)

@@ -134,9 +134,11 @@ jobs:
           "CMAKE_ARGS=-DBUILD_SHARED_LIBS=ON -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL -DwxWidgets_ROOT_DIR=$wxRoot -DwxWidgets_LIB_DIR=$wxRoot/lib/vc14x_x64_dll -DwxWidgets_CONFIGURATION=mswu -DWX_RUNTIME_DIR=$wxRuntime -DWX_LICENSE_FILE=$wxLicense" >> $env:GITHUB_ENV
 
       - name: Build package
+        if: runner.os != 'macOS'
         run: make build-package
 
       - name: Upload package
+        if: runner.os != 'macOS'
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.APP_NAME }}_${{ matrix.os }}
@@ -146,8 +148,112 @@ jobs:
             build/packages/*.exe
           if-no-files-found: error
 
-  release:
+      - name: Build macOS app bundle
+        if: runner.os == 'macOS'
+        run: |
+          make
+          cmake --install build --prefix build/macos-package --config Release
+          cp build/package-version.txt build/macos-package/
+          tar -czf build/DMirror-${{ runner.arch }}.tar.gz \
+            -C build/macos-package \
+            DMirror.app README.md package-version.txt
+
+      - name: Upload macOS app bundle
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-app-${{ runner.arch }}
+          path: build/DMirror-${{ runner.arch }}.tar.gz
+          if-no-files-found: error
+
+  package-macos:
     needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: macos-15
+
+    steps:
+      - name: Download native macOS apps
+        uses: actions/download-artifact@v8
+        with:
+          pattern: macos-app-*
+          merge-multiple: true
+          path: build/native-macos
+
+      - name: Create universal app
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p build/arm64 build/x86_64 build/universal-image build/packages
+          tar -xzf build/native-macos/DMirror-ARM64.tar.gz -C build/arm64
+          tar -xzf build/native-macos/DMirror-X64.tar.gz -C build/x86_64
+
+          arm_app=build/arm64/DMirror.app
+          x64_app=build/x86_64/DMirror.app
+          universal_app=build/universal-image/DMirror.app
+          cp -R "$arm_app" "$universal_app"
+          cp build/arm64/README.md build/universal-image/
+
+          while IFS= read -r -d '' arm_file; do
+            if ! arm_archs=$(lipo -archs "$arm_file" 2>/dev/null); then
+              continue
+            fi
+
+            relative=${arm_file#"$arm_app"/}
+            x64_file="$x64_app/$relative"
+            universal_file="$universal_app/$relative"
+            test -f "$x64_file"
+
+            x64_archs=$(lipo -archs "$x64_file")
+            case "$arm_archs" in *arm64*) ;; *) exit 1 ;; esac
+            case "$x64_archs" in *x86_64*) ;; *) exit 1 ;; esac
+
+            if [[ "$arm_archs" == *x86_64* ]]; then
+              continue
+            elif [[ "$x64_archs" == *arm64* ]]; then
+              cp "$x64_file" "$universal_file"
+            else
+              lipo -create "$arm_file" "$x64_file" -output "$universal_file.tmp"
+              chmod 755 "$universal_file.tmp"
+              mv "$universal_file.tmp" "$universal_file"
+            fi
+          done < <(find "$arm_app" -type f -print0)
+
+          while IFS= read -r -d '' universal_file; do
+            if ! archs=$(lipo -archs "$universal_file" 2>/dev/null); then
+              continue
+            fi
+            case "$archs" in *arm64*) ;; *) exit 1 ;; esac
+            case "$archs" in *x86_64*) ;; *) exit 1 ;; esac
+            if otool -L "$universal_file" | \
+              grep -E '(@rpath|/opt/homebrew|/usr/local/(Cellar|opt))'; then
+              echo "Unresolved external dependency in $universal_file"
+              exit 1
+            fi
+          done < <(find "$universal_app" -type f -print0)
+
+          codesign --force --deep --sign - "$universal_app"
+          codesign --verify --deep --strict "$universal_app"
+
+          version=$(<build/arm64/package-version.txt)
+          hdiutil create \
+            -volname DMirror \
+            -srcfolder build/universal-image \
+            -ov \
+            -format UDZO \
+            "build/packages/DMirror-${version}-macOS-universal.dmg"
+
+      - name: Upload universal macOS package
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.APP_NAME }}_macOS-universal
+          path: build/packages/*.dmg
+          if-no-files-found: error
+
+  release:
+    needs:
+      - build
+      - package-macos
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
 
