@@ -100,7 +100,11 @@ elseif(APPLE)
     install(CODE [[
         include(BundleUtilities)
         set(bundle "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/DMirror.app")
-        fixup_bundle("${bundle}" "" "")
+        file(GLOB bundle_search_dirs LIST_DIRECTORIES true
+            "$ENV{HOMEBREW_PREFIX}/opt/*/lib"
+        )
+        list(PREPEND bundle_search_dirs "$ENV{HOMEBREW_PREFIX}/lib")
+        fixup_bundle("${bundle}" "" "${bundle_search_dirs}")
     ]])
 else()
     install(TARGETS DMirror RUNTIME DESTINATION bin)
