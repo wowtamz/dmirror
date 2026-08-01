@@ -71,6 +71,8 @@ if(WIN32)
     set(CPACK_PACKAGE_EXECUTABLES "DMirror" "DMirror")
     set(CPACK_NSIS_EXECUTABLES_DIRECTORY ".")
     set(CPACK_CREATE_DESKTOP_LINKS "DMirror")
+    set(CPACK_NSIS_MUI_ICON
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/platform/windows/app.ico")
 elseif(APPLE)
     set(CPACK_GENERATOR "DragNDrop")
     set(CPACK_SYSTEM_NAME "macOS-${CMAKE_SYSTEM_PROCESSOR}")
