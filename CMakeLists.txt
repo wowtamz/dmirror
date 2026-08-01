@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(MyApp LANGUAGES CXX)
+project(DMirror VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -21,11 +21,17 @@ endif()
 # to the Find module (Ubuntu, Debian, etc.)
 find_package(wxWidgets CONFIG QUIET)
 
-if(wxWidgets_FOUND)
+if(WIN32)
     add_executable(DMirror WIN32
         ${SOURCES}
     )
+elseif(APPLE)
+    add_executable(DMirror MACOSX_BUNDLE ${SOURCES})
+else()
+    add_executable(DMirror ${SOURCES})
+endif()
 
+if(wxWidgets_FOUND)
     target_link_libraries(DMirror PRIVATE
         wx::core
         wx::base
@@ -33,8 +39,6 @@ if(wxWidgets_FOUND)
 else()
     find_package(wxWidgets REQUIRED COMPONENTS core base)
     include(${wxWidgets_USE_FILE})
-
-    add_executable(DMirror WIN32 ${SOURCES})
 
     target_link_libraries(DMirror PRIVATE ${wxWidgets_LIBRARIES})
     target_compile_definitions(DMirror PRIVATE ${wxWidgets_DEFINITIONS})
@@ -44,3 +48,62 @@ target_include_directories(DMirror PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/resources
 )
+
+if(WIN32)
+    set(CPACK_GENERATOR "NSIS")
+    set(CPACK_PACKAGE_EXECUTABLES "DMirror" "DMirror")
+    set(CPACK_CREATE_DESKTOP_LINKS "DMirror")
+elseif(APPLE)
+    set(CPACK_GENERATOR "DragNDrop")
+elseif(UNIX)
+    set(CPACK_GENERATOR "DEB")
+    set(CPACK_DEBIAN_PACKAGE_NAME "dmirror")
+    set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+    set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+endif()
+
+set(CPACK_PACKAGE_NAME "DMirror")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_VENDOR "Tamas Henninger-Varadi")
+set(CPACK_PACKAGE_CONTACT "1997tamas.varadi@gmail.com")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Cross-platform backup application")
+set(CPACK_PACKAGE_DIRECTORY "${CMAKE_BINARY_DIR}/packages")
+
+if(WIN32)
+    install(TARGETS DMirror RUNTIME DESTINATION .)
+
+    if(WX_RUNTIME_DIR)
+        file(GLOB WX_RUNTIME_DLLS "${WX_RUNTIME_DIR}/*.dll")
+        if(NOT WX_RUNTIME_DLLS)
+            message(FATAL_ERROR "No wxWidgets DLLs found in ${WX_RUNTIME_DIR}")
+        endif()
+        install(FILES ${WX_RUNTIME_DLLS} DESTINATION .)
+    endif()
+
+    if(WX_LICENSE_FILE)
+        if(NOT EXISTS "${WX_LICENSE_FILE}")
+            message(FATAL_ERROR "wxWidgets license not found: ${WX_LICENSE_FILE}")
+        endif()
+        install(FILES "${WX_LICENSE_FILE}"
+            DESTINATION .
+            RENAME wxWidgets-LICENSE.txt
+        )
+    endif()
+
+    if(MSVC AND CMAKE_MSVC_RUNTIME_LIBRARY MATCHES "DLL")
+        set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION .)
+        include(InstallRequiredSystemLibraries)
+    endif()
+elseif(APPLE)
+    install(TARGETS DMirror BUNDLE DESTINATION .)
+
+    install(CODE [[
+        include(BundleUtilities)
+        set(bundle "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/DMirror.app")
+        fixup_bundle("${bundle}" "" "")
+    ]])
+else()
+    install(TARGETS DMirror RUNTIME DESTINATION bin)
+endif()
+
+include(CPack)

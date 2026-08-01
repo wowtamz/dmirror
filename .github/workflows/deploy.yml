@@ -61,8 +61,6 @@ jobs:
           - windows-2025
 
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.os == 'windows-2025' }}
-
     steps:
       - uses: actions/checkout@v7
 
@@ -84,6 +82,8 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          choco install nsis -y
+
           $wxRoot = Join-Path "${{ runner.temp }}" "wxWidgets"
           $runtimeRoot = Join-Path "${{ runner.temp }}" "wxWidgets-runtime"
           $downloadRoot = Join-Path "${{ runner.temp }}" "wxWidgets-downloads"
@@ -130,61 +130,19 @@ jobs:
           $wxRoot = $wxRoot.Replace('\', '/')
           $wxRuntime = (Join-Path $runtimeRoot "lib/vc14x_x64_dll").Replace('\', '/')
           $wxLicense = (Join-Path $runtimeRoot "licence.txt").Replace('\', '/')
-          "CMAKE_ARGS=-DBUILD_SHARED_LIBS=ON -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL -DwxWidgets_ROOT_DIR=$wxRoot -DwxWidgets_LIB_DIR=$wxRoot/lib/vc14x_x64_dll -DwxWidgets_CONFIGURATION=mswu" >> $env:GITHUB_ENV
-          "WX_RUNTIME_DIR=$wxRuntime" >> $env:GITHUB_ENV
-          "WX_LICENSE_FILE=$wxLicense" >> $env:GITHUB_ENV
+          "CMAKE_ARGS=-DBUILD_SHARED_LIBS=ON -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL -DwxWidgets_ROOT_DIR=$wxRoot -DwxWidgets_LIB_DIR=$wxRoot/lib/vc14x_x64_dll -DwxWidgets_CONFIGURATION=mswu -DWX_RUNTIME_DIR=$wxRuntime -DWX_LICENSE_FILE=$wxLicense" >> $env:GITHUB_ENV
 
-      - name: Build
-        run: make
+      - name: Build package
+        run: make build-package
 
-      - name: Package unix binaries
-        if: runner.os != 'Windows'
-        run: |
-          cd build/bin
-          tar -czf ${{ env.APP_NAME }}_${{ runner.os }}_${{runner.arch}}.tar.gz DMirror
-
-      - name: Package Windows binary and runtime DLLs
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $output = "build/bin/Release"
-          $packageRoot = "build/package"
-          $packageDirectory = "$packageRoot/DMirror"
-          Copy-Item "$env:WX_RUNTIME_DIR/*.dll" $output
-          Copy-Item $env:WX_LICENSE_FILE "$output/wxWidgets-LICENSE.txt"
-
-          $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
-          $visualStudio = & $vswhere -latest -property installationPath
-          $redist = Get-ChildItem "$visualStudio/VC/Redist/MSVC" -Directory |
-            Where-Object { $_.Name -match '^\d+(\.\d+)+$' } |
-            Sort-Object { [version]$_.Name } -Descending |
-            Select-Object -First 1
-          $crt = Get-ChildItem "$($redist.FullName)/x64" -Directory -Filter "Microsoft.VC*.CRT" |
-            Sort-Object Name -Descending |
-            Select-Object -First 1
-          Copy-Item "$($crt.FullName)/*.dll" $output
-
-          New-Item -ItemType Directory -Force $packageDirectory | Out-Null
-          Copy-Item "$output/*" $packageDirectory -Recurse
-
-          Compress-Archive `
-            -Path $packageDirectory `
-            -DestinationPath "build/${{ env.APP_NAME }}_${{ runner.os }}.zip"
-
-      - name: Upload unix binaries
-        if: runner.os != 'Windows'
+      - name: Upload package
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ env.APP_NAME }}_${{ runner.os }}_${{runner.arch}}
-          path: build/bin/${{ env.APP_NAME }}_${{ runner.os }}_${{runner.arch}}.tar.gz
-          if-no-files-found: error
-
-      - name: Upload Windows binary
-        if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ env.APP_NAME }}_${{ runner.os }}
-          path: build/${{ env.APP_NAME }}_${{ runner.os }}.zip
+          name: ${{ env.APP_NAME }}_${{ matrix.os }}
+          path: |
+            build/packages/*.deb
+            build/packages/*.dmg
+            build/packages/*.exe
           if-no-files-found: error
 
   release:

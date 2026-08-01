@@ -6,6 +6,24 @@ A fast, lightweight, cross-platform backup application written in modern C++ wit
 - Cross-platform GUI using wxWidgets
 - Modern C++20 codebase
 
+## Required Libraries
+
+### Linux / Unix
+
+This application requires the following runtime libraries:
+
+- wxWidgets 3.2:
+  - `libwx_gtk3u_core-3.2.so.0`
+  - `libwx_baseu-3.2.so.0`
+
+These libraries must be available on the target system at runtime.
+
+On Debian/Ubuntu-based systems, install the required wxWidgets runtime libraries with:
+
+```bash
+sudo apt install libwxgtk3.2-1
+```
+
 ## Building from Source
 Building DMirror from source is straightforward thanks to its streamlined build system and platform-specific Makefiles. After installing the required dependencies for your operating system, the project can be built with a single `make` command. The build process is designed to minimize setup while remaining flexible for developers who wish to customize their build configuration.
 

@@ -1,4 +1,4 @@
-.PHONY: all build test #declare recipies
+.PHONY: all build build-package test #declare recipes
 
 all: build
 
@@ -6,6 +6,9 @@ build:
 	cmake -S . -B build $(CMAKE_ARGS) \
 		-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=bin
 	cmake --build build --config Release
+
+build-package: build
+	cmake --build build --config Release --target package
 
 test: build
 	ctest --test-dir build --output-on-failure
