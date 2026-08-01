@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=DMirror
+Comment=Cross-platform backup application
+Exec=DMirror
+Icon=dmirror
+Categories=Utility;System;
+Terminal=false

@@ -127,6 +127,8 @@ elseif(APPLE)
 else()
     install(TARGETS DMirror RUNTIME DESTINATION bin)
     install(FILES README.md DESTINATION share/doc/dmirror)
+    install(FILES packaging/linux/dmirror.desktop DESTINATION share/applications)
+    install(FILES packaging/linux/dmirror.png DESTINATION share/icons/hicolor/256x256/apps)
 endif()
 
 include(CPack)
