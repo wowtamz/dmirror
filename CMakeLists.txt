@@ -37,6 +37,17 @@ else()
     add_executable(DMirror ${SOURCES})
 endif()
 
+if(APPLE)
+    set(MACOS_ICON packaging/macos/dmirror.icns)
+    set_source_files_properties(${MACOS_ICON} PROPERTIES
+        MACOSX_PACKAGE_LOCATION Resources
+    )
+    target_sources(DMirror PRIVATE ${MACOS_ICON})
+    set_target_properties(DMirror PROPERTIES
+        MACOSX_BUNDLE_ICON_FILE dmirror.icns
+    )
+endif()
+
 if(wxWidgets_FOUND)
     target_link_libraries(DMirror PRIVATE
         wx::core

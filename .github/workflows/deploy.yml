@@ -195,6 +195,7 @@ jobs:
           universal_app=build/universal-image/DMirror.app
           cp -R "$arm_app" "$universal_app"
           cp build/arm64/README.md build/universal-image/
+          ln -s /Applications build/universal-image/Applications
 
           while IFS= read -r -d '' arm_file; do
             if ! arm_archs=$(lipo -archs "$arm_file" 2>/dev/null); then
