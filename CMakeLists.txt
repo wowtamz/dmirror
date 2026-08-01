@@ -104,6 +104,7 @@ elseif(APPLE)
     install(CODE [[
         include(BundleUtilities)
         set(bundle "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/DMirror.app")
+        get_filename_component(bundle "${bundle}" ABSOLUTE)
         file(GLOB bundle_search_dirs LIST_DIRECTORIES true
             "$ENV{HOMEBREW_PREFIX}/opt/*/lib"
         )
