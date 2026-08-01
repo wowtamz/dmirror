@@ -203,6 +203,14 @@ p{ margin: 0; }
   margin-bottom: 22px;
 }
 
+.hero-mobile-logo {
+  display: none;
+}
+
+.hero-mobile-logo img {
+  max-width: 256px;
+}
+
 .lede{
   font-size: 17px;
   color: var(--text-dim);
@@ -400,6 +408,35 @@ p{ margin: 0; }
 /* ---------------------------------------------------------
    Responsive: nav collapse
 --------------------------------------------------------- */
+
+@media (max-width: 980px) {
+
+  .hero-copy {
+    text-align: center;  
+  }
+
+  .lede {
+    max-width: 100%;  
+  }
+
+  .hero-actions {
+    justify-content: center;
+  }
+
+  .hero-logo {
+    display: none;
+  }
+
+  .hero-mobile-logo {
+    display: inherit;
+    justify-self: center;
+  }
+
+  .download-card {
+    align-items: center;
+  }
+}
+
 @media (max-width: 860px){
   .main-nav{ display: none; }
 }
