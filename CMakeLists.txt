@@ -69,6 +69,7 @@ target_include_directories(DMirror PRIVATE
 if(WIN32)
     set(CPACK_GENERATOR "NSIS")
     set(CPACK_PACKAGE_EXECUTABLES "DMirror" "DMirror")
+    set(CPACK_NSIS_EXECUTABLES_DIRECTORY ".")
     set(CPACK_CREATE_DESKTOP_LINKS "DMirror")
 elseif(APPLE)
     set(CPACK_GENERATOR "DragNDrop")
@@ -94,6 +95,11 @@ set(CPACK_PACKAGE_VENDOR "Tamas Henninger-Varadi")
 set(CPACK_PACKAGE_CONTACT "1997tamas.varadi@gmail.com")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Cross-platform backup application")
 set(CPACK_PACKAGE_DIRECTORY "${CMAKE_BINARY_DIR}/packages")
+
+if(WIN32)
+    set(CPACK_PACKAGE_FILE_NAME
+        "${CPACK_PACKAGE_NAME}-${PROJECT_VERSION}-win64-installer")
+endif()
 
 if(WIN32)
     install(TARGETS DMirror RUNTIME DESTINATION .)
