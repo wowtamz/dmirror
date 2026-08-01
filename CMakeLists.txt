@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(DMirror VERSION 1.0.0 LANGUAGES CXX)
+set(DMIRROR_VERSION "0.1.0")
+if(DEFINED ENV{DMIRROR_VERSION})
+    string(REGEX REPLACE "^v" "" DMIRROR_VERSION "$ENV{DMIRROR_VERSION}")
+endif()
+
+project(DMirror VERSION ${DMIRROR_VERSION} LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 file(WRITE "${CMAKE_BINARY_DIR}/package-version.txt" "${PROJECT_VERSION}")
