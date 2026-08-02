@@ -1,4 +1,5 @@
 #include <wx/wx.h>
+#include <wx/filepicker.h>
 #include <wx/mstream.h>
 
 #include "main_frame.h"
@@ -29,24 +30,72 @@ MainFrame::MainFrame()
 
     auto* panel = new wxPanel(this);
 
-    m_button = new wxButton(panel, wxID_ANY, "Click Me!");
+    auto* srcPanel = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
+    auto* srcSizer = new wxBoxSizer(wxVERTICAL);
+    srcSizer->Add(new wxStaticText(srcPanel, wxID_ANY, "Source Directory"), 0, wxBOTTOM | wxCENTER, 8);
+    srcSizer->Add(
+        new wxDirPickerCtrl(
+            srcPanel,
+            wxID_ANY,
+            wxEmptyString,
+            "Select a source directory",
+            wxDefaultPosition,
+            wxDefaultSize,
+            wxDIRP_DEFAULT_STYLE | wxDIRP_USE_TEXTCTRL
+        ),
+        0,
+        wxEXPAND
+    );
+    srcPanel->SetSizer(srcSizer);
 
-    auto* sizer = new wxBoxSizer(wxVERTICAL);
-    sizer->Add(m_button, 0, wxALL | wxCENTER, 60);
+    auto* dstPanel = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
+    auto* dstSizer = new wxBoxSizer(wxVERTICAL);
+    dstSizer->Add(new wxStaticText(dstPanel, wxID_ANY, "Destination Directory"), 0, wxBOTTOM | wxCENTER, 8);
+    dstSizer->Add(
+        new wxDirPickerCtrl(
+            dstPanel,
+            wxID_ANY,
+            wxEmptyString,
+            "Select a destination directory",
+            wxDefaultPosition,
+            wxDefaultSize,
+            wxDIRP_DEFAULT_STYLE | wxDIRP_USE_TEXTCTRL
+        ),
+        0,
+        wxEXPAND
+    );
+    dstPanel->SetSizer(dstSizer);
 
-    panel->SetSizer(sizer);
+    auto* ctrlPanel = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
+    auto* ctrlSizer = new wxBoxSizer(wxHORIZONTAL);
+    auto* startButton = new wxButton(ctrlPanel, wxID_ANY, "Start");
+    auto* cancelButton = new wxButton(ctrlPanel, wxID_ANY, "Cancel");
+    ctrlSizer->Add(startButton, 0, wxBOTTOM | wxCENTER, 8);
+    ctrlSizer->Add(cancelButton, 0, wxBOTTOM | wxCENTER, 8);
+    ctrlPanel->SetSizer(ctrlSizer);
 
-    m_button->Bind(wxEVT_BUTTON, &MainFrame::OnButtonClicked, this);
+    auto* sizerSelect = new wxBoxSizer(wxHORIZONTAL);
+    sizerSelect->Add(srcPanel, 1, wxEXPAND | wxALL, 10);
+    sizerSelect->Add(dstPanel, 1, wxEXPAND | wxALL, 10);
+
+    auto* sizerMain = new wxBoxSizer(wxVERTICAL);
+    sizerMain->Add(sizerSelect, 1, wxEXPAND | wxALL, 10);
+    sizerMain->Add(ctrlPanel, 0, wxEXPAND | wxALL, 10);
+
+    panel->SetSizer(sizerMain);
+
+    startButton->Bind(wxEVT_BUTTON, &MainFrame::OnStartClicked, this);
+    cancelButton->Bind(wxEVT_BUTTON, &MainFrame::OnCancelClicked, this);
 }
 
-void MainFrame::OnButtonClicked(wxCommandEvent& event)
+void MainFrame::OnStartClicked(wxCommandEvent& event)
 {
-    wxMessageBox(
-            "You clicked the button!",
-            "Hello World!",
-            wxOK | wxICON_INFORMATION,
-            this
-    );
+    std::cout << "Start button clicked!" << std::endl;
+}
+
+void MainFrame::OnCancelClicked(wxCommandEvent& event)
+{
+    std::cout << "Cancel button clicked!" << std::endl;
 }
 
 void MainFrame::OnExit(wxCommandEvent& event)
