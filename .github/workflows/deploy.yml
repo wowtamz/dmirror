@@ -48,10 +48,9 @@ jobs:
         run: make test
 
   build:
-    if: startsWith(github.ref, 'refs/tags/v')
     needs: test
     env:
-      DMIRROR_VERSION: ${{ github.ref_name }}
+      DMIRROR_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -73,7 +72,13 @@ jobs:
           sudo apt-get install -y \
             build-essential \
             cmake \
-            libwxgtk3.2-dev
+            curl \
+            dpkg-dev \
+            file \
+            libgirepository1.0-dev \
+            librsvg2-dev \
+            libwxgtk3.2-dev \
+            pkg-config
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
@@ -139,8 +144,55 @@ jobs:
         if: runner.os != 'macOS'
         run: make build-package
 
+      - name: Build AppImage
+        if: runner.os == 'Linux'
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: 1
+          DEPLOY_GTK_VERSION: 3
+        run: |
+          set -euo pipefail
+
+          case "$(uname -m)" in
+            x86_64)
+              arch=x86_64
+              checksum=c20cd71e3a4e3b80c3483cef793cda3f4e990aca14014d23c544ca3ce1270b4d
+              ;;
+            aarch64)
+              arch=aarch64
+              checksum=620095110d693282b8ebeb244a95b5e911cf8f65f76c88b4b47d16ae6346fcff
+              ;;
+            *)
+              echo "Unsupported AppImage architecture: $(uname -m)"
+              exit 1
+              ;;
+          esac
+
+          tools="$PWD/build/appimage-tools"
+          linuxdeploy="$tools/linuxdeploy-$arch.AppImage"
+          gtk_plugin="$tools/linuxdeploy-plugin-gtk.sh"
+          mkdir -p "$tools"
+
+          curl -L --fail --retry 3 -o "$linuxdeploy" \
+            "https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-$arch.AppImage"
+          echo "$checksum  $linuxdeploy" | sha256sum --check
+
+          curl -L --fail --retry 3 -o "$gtk_plugin" \
+            "https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/7a3fbc31a9e5075073ff8790f26effbac5f84453/linuxdeploy-plugin-gtk.sh"
+          echo "b0f4cbc684a0103a9651f0955b635eaea0096b3a66c0f5a2c2aa337960375171  $gtk_plugin" | sha256sum --check
+          chmod +x "$linuxdeploy" "$gtk_plugin"
+
+          version=$(<build/package-version.txt)
+          LDAI_OUTPUT="$PWD/build/packages/DMirror-${version}-linux-${arch}.AppImage" \
+            "$linuxdeploy" \
+              --appdir build/AppDir \
+              --executable build/bin/DMirror \
+              --desktop-file packaging/linux/dmirror.desktop \
+              --icon-file packaging/linux/dmirror.png \
+              --plugin gtk \
+              --output appimage
+
       - name: Upload package
-        if: runner.os != 'macOS'
+        if: runner.os != 'macOS' && startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.APP_NAME }}_${{ matrix.os }}
@@ -148,6 +200,7 @@ jobs:
             build/packages/*.deb
             build/packages/*.dmg
             build/packages/*.exe
+            build/packages/*.AppImage
           if-no-files-found: error
 
       - name: Build macOS app bundle
@@ -161,7 +214,7 @@ jobs:
             DMirror.app README.md package-version.txt
 
       - name: Upload macOS app bundle
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@v7
         with:
           name: macos-app-${{ runner.arch }}
