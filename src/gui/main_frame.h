@@ -7,8 +7,6 @@ class MainFrame : public wxFrame
         MainFrame();
 
     private:
-        void OnStartClicked(wxCommandEvent& event);
-        void OnCancelClicked(wxCommandEvent& event);
         void OnExit(wxCommandEvent& event);
         void OnAbout(wxCommandEvent& event);
 
