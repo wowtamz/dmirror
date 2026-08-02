@@ -340,6 +340,42 @@ p{ margin: 0; }
 }
 
 /* ---------------------------------------------------------
+   Modal
+--------------------------------------------------------- */
+
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.75);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--bg);
+    padding: 24px;
+    border-radius: 10px;
+    width: 320px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,.2);
+}
+
+.modal-content h2 {
+    margin-bottom: 8px;
+}
+
+.modal-content .btn {
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+/* ---------------------------------------------------------
    Build from source
 --------------------------------------------------------- */
 .source{ padding: 96px 0; }

@@ -12,9 +12,10 @@ async function main() {
   const release = await getLatestRelease("wowtamz", "dmirror");
 
   const osDict = {
-    win64: 'dl_win64',
-    macOS: 'dl_macos',
-    linux: 'dl_linux'
+    'win64': 'dl_win64',
+    'macOS': 'dl_macos',
+    'linux-x86_64.AppImage': 'dl_appimage',
+    'linux_x64.deb': 'dl_deb'
   };
 
   const downloadTitle = document.getElementById("dl_title");
@@ -30,6 +31,16 @@ async function main() {
       }
     }
   });
+
+  const modal = document.getElementById("dl_modal");
+
+  document.getElementById("openModal").onclick = () => {
+    modal.classList.add("show");
+  };
+
+document.getElementById("closeModal").onclick = () => {
+    modal.classList.remove("show");
+  };
 }
 
 main();
