@@ -21,7 +21,7 @@ void DMirror::OnStartClicked(wxCommandEvent& event)
             wxOK | wxICON_WARNING,
             frame
         );
-    return;
+        return;
     }
     
     wxMessageBox(

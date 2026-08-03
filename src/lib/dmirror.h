@@ -19,7 +19,7 @@ std::string dmirror_get_file_sig(std::string& file_path)
         throw std::runtime_error("Error occurred while getting file's last write time");
     }
 
-    return file_size + "_" + std::to_string(last_write_time.time_since_epoch().count());
+    return std::format("{}_{}", file_size, last_write_time.time_since_epoch().count());
 }
 
 bool dmirror_cmp_files(std::string& file_x_path, std::string& file_y_path)
