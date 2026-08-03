@@ -1,5 +1,6 @@
 #include "app.h"
 #include "gui/main_frame.h"
+#include "lib/dmirror.h"
 
 bool DMirror::OnInit()
 {
@@ -13,11 +14,21 @@ bool DMirror::OnInit()
 
 void DMirror::OnStartClicked(wxCommandEvent& event)
 {
-    wxMessageBox(
-            "You clicked the button!",
-            "Hello World!",
-            wxOK | wxICON_INFORMATION,
+    if (srcDirPath.IsEmpty() || dstDirPath.IsEmpty()) {
+        wxMessageBox(
+            "Please specify a source and destination directory before starting the copy operation.",
+            "Warning: Directory not specified.",
+            wxOK | wxICON_WARNING,
             frame
+        );
+    return;
+    }
+    
+    wxMessageBox(
+        "Are you sure you want to copy the contents of the source directory to the destination directory?",
+        "Confirm: Copy Operation",
+        wxYES_NO | wxICON_INFORMATION,
+        frame
     );
     std::cout << "Start button clicked!" << std::endl;
     StartCopy();
@@ -25,7 +36,27 @@ void DMirror::OnStartClicked(wxCommandEvent& event)
 
 void DMirror::StartCopy()
 {
-    std::cout << "Starting copy from " << srcDirPath.ToUTF8().data() << " to " << dstDirPath.ToUTF8().data() << std::endl;
+    bool success = dmirror_copy_dir(srcDirPath.ToUTF8().data(), dstDirPath.ToUTF8().data());
+
+    if (!success) {
+        std::cerr << "Failed to copy directory contents from " << srcDirPath << " to " << dstDirPath << std::endl;
+        wxMessageBox(
+            "The copy operation has failed to copy all files. Check the console output for details.",
+            "Copy Operation Failed",
+            wxOK | wxICON_EXCLAMATION,
+            frame
+        );
+        return;
+    } else {
+        std::cout << "Successfully copied directory contents from " << srcDirPath << " to " << dstDirPath << std::endl;
+    }
+
+    wxMessageBox(
+            "The copy operation has completed successfully.",
+            "Copy Operation Completed",
+            wxOK | wxICON_WARNING,
+            frame
+    );
 }
 
 void DMirror::OnCancelClicked(wxCommandEvent& event)
