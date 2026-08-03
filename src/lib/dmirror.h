@@ -21,7 +21,7 @@ std::string dmirror_get_file_sig(std::string& file_path)
 
     auto ticks = std::chrono::duration_cast<std::chrono::nanoseconds>(last_write_time.time_since_epoch()).count();;
 
-    return std::to_string(file_size) + "_" + std::to_string(ticks);
+    return file_size + "_" + std::to_string(ticks);
 }
 
 bool dmirror_cmp_files(std::string& file_x_path, std::string& file_y_path)
