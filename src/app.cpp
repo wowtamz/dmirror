@@ -20,9 +20,27 @@ void DMirror::OnStartClicked(wxCommandEvent& event)
             frame
     );
     std::cout << "Start button clicked!" << std::endl;
+    StartCopy();
+}
+
+void DMirror::StartCopy()
+{
+    std::cout << "Starting copy from " << srcDirPath.ToUTF8().data() << " to " << dstDirPath.ToUTF8().data() << std::endl;
 }
 
 void DMirror::OnCancelClicked(wxCommandEvent& event)
 {
     std::cout << "Cancel button clicked!" << std::endl;
+}
+
+void DMirror::OnSourceDirChanged(wxFileDirPickerEvent& event)
+{
+    srcDirPath = event.GetPath();
+    std::cout << "Source Directory changed to " << srcDirPath.ToUTF8().data() << std::endl;
+}
+
+void DMirror::OnDestinationDirChanged(wxFileDirPickerEvent& event)
+{
+    this->dstDirPath = event.GetPath();
+    std::cout << "Destination Directory changed to " << dstDirPath.ToUTF8().data() << std::endl;
 }

@@ -1,6 +1,7 @@
 #include <wx/wx.h>
 #include <wx/filepicker.h>
 
+#include "app.h"
 #include "dir_picker_panel.h"
 
 DirPickerPanel::DirPickerPanel(wxWindow* parent) : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE)
@@ -41,4 +42,7 @@ DirPickerPanel::DirPickerPanel(wxWindow* parent) : wxPanel(parent, wxID_ANY, wxD
     sizer->Add(dstPanel, 1, wxEXPAND | wxALL, 5);
 
     this->SetSizer(sizer);
+
+    srcPicker->Bind(wxEVT_DIRPICKER_CHANGED, &DMirror::OnSourceDirChanged, &wxGetApp());
+    dstPicker->Bind(wxEVT_DIRPICKER_CHANGED, &DMirror::OnDestinationDirChanged, &wxGetApp());
 }

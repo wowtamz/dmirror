@@ -48,10 +48,9 @@ MainFrame::MainFrame()
     sizerMain->Add(ctrlPanel, 0, wxEXPAND | wxALL, 10);
 
     panel->SetSizer(sizerMain);
-
-    auto* app = &wxGetApp();
-    startButton->Bind(wxEVT_BUTTON, &DMirror::OnStartClicked, app);
-    cancelButton->Bind(wxEVT_BUTTON, &DMirror::OnCancelClicked, app);
+    
+    startButton->Bind(wxEVT_BUTTON, &DMirror::OnStartClicked, &wxGetApp());
+    cancelButton->Bind(wxEVT_BUTTON, &DMirror::OnCancelClicked, &wxGetApp());
 }
 
 void MainFrame::OnExit(wxCommandEvent& event)
