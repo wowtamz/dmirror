@@ -36,7 +36,12 @@ void DMirror::OnStartClicked(wxCommandEvent& event)
 
 void DMirror::StartCopy()
 {
-    bool success = dmirror_copy_dir(srcDirPath.ToUTF8().data(), dstDirPath.ToUTF8().data());
+    bool success = dmirror_copy_dir(srcDirPath.ToUTF8().data(), dstDirPath.ToUTF8().data(),
+        [this](int current, int total)
+        {
+            std::cout << "Progress: " << current << "/" << total << std::endl;
+        }
+    );
 
     if (!success) {
         std::cerr << "Failed to copy directory contents from " << srcDirPath << " to " << dstDirPath << std::endl;

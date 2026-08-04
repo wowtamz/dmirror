@@ -57,10 +57,22 @@ bool dmirror_copy_file(const std::string& src_path, const std::string& dest_path
 }
 
 
-bool dmirror_copy_dir(const std::string& src_path, const std::string& dest_path)
+bool dmirror_copy_dir(const std::string& src_path, const std::string& dest_path, std::function<void(int current, int total)> progress_callback = nullptr)
 {
-    // We assume that dest_path already exists and is a directory.
     std::filesystem::create_directory(dest_path);
+
+    int current = 0;
+    int total = 0;
+
+    for (const auto& element : std::filesystem::recursive_directory_iterator(src_path)) {
+        if (element.is_regular_file()) {
+            total++;
+        }
+    }
+
+    if (progress_callback != nullptr) {
+        progress_callback(current, total);
+    }
 
     for (const auto& element : std::filesystem::recursive_directory_iterator(src_path)) {
 
@@ -73,6 +85,10 @@ bool dmirror_copy_dir(const std::string& src_path, const std::string& dest_path)
             while (try_count < 3) {
                 bool success = dmirror_copy_file(element.path().string(), dest_path + "/" + relative_path);
                 if (success) {
+                    current++;
+                    if (progress_callback != nullptr) {
+                        progress_callback(current, total);
+                    }
                     break;
                 } else {
                     std::cerr << "Retrying copy for file: " << element.path() << std::endl;
