@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <fstream>
 
-std::string dmirror_get_file_sig(std::string& file_path)
+std::string dmirror_get_file_sig(const std::string& file_path)
 {
     std::error_code ec;
     uintmax_t size = std::filesystem::file_size(file_path, ec);
@@ -24,13 +24,18 @@ std::string dmirror_get_file_sig(std::string& file_path)
     return file_size + "_" + std::to_string(ticks);
 }
 
-bool dmirror_cmp_files(std::string& file_x_path, std::string& file_y_path)
+bool dmirror_cmp_files(const std::string& file_x_path, const std::string& file_y_path)
 {
     return dmirror_get_file_sig(file_x_path) == dmirror_get_file_sig(file_y_path);
 }
 
 bool dmirror_copy_file(const std::string& src_path, const std::string& dest_path)
 {
+    if (dmirror_cmp_files(src_path, dest_path)) {
+        std::cout << "Files are identical, skipping copy: " << src_path << " -> " << dest_path << std::endl;
+        return true;
+    }
+
     bool success = std::filesystem::copy_file(src_path, dest_path, std::filesystem::copy_options::overwrite_existing);
     if (!success) {
         std::cerr << "Failed to copy file from " << src_path << " to " << dest_path << std::endl;
@@ -45,6 +50,8 @@ bool dmirror_copy_file(const std::string& src_path, const std::string& dest_path
         std::cerr << "Failed to preserve last write time for " << dest_path << ": " << ec.message() << std::endl;
         return false;
     }
+
+    std::cout << "Successfully copied file " << dest_path << std::endl;
 
     return true;
 }
@@ -66,7 +73,6 @@ bool dmirror_copy_dir(const std::string& src_path, const std::string& dest_path)
             while (try_count < 3) {
                 bool success = dmirror_copy_file(element.path().string(), dest_path + "/" + relative_path);
                 if (success) {
-                    std::cout << "Successfully copied file " << element.path() << std::endl;
                     break;
                 } else {
                     std::cerr << "Retrying copy for file: " << element.path() << std::endl;
