@@ -42,7 +42,6 @@ void DMirror::StartCopy()
 {
     auto* progDialog = new ProgressDialog(frame);
     
-    
     progDialog->Bind(wxEVT_SHOW, [&](wxShowEvent& event)
     {
 
@@ -107,8 +106,11 @@ void DMirror::StartCopy()
                     );
                     break;
             }
-            
-            progDialog->EndModal(0);
+
+            wxGetApp().CallAfter([progDialog]()
+            {
+                progDialog->EndModal(0);
+            });
 
         }).detach();
 
