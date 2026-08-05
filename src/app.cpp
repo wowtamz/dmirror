@@ -28,6 +28,16 @@ void DMirror::OnStartClicked(wxCommandEvent& event)
         return;
     }
     
+    if (srcDirPath == dstDirPath) {
+        wxMessageBox(
+            "Source and destionation directories cannot be the same. Please specify separate source and destination directory before starting the copy operation.",
+            "Warning: Invalid directory.",
+            wxOK | wxICON_WARNING,
+            frame
+        );
+        return;
+    }
+
     wxMessageBox(
         "Are you sure you want to copy the contents of the source directory to the destination directory?",
         "Confirm: Copy Operation",
