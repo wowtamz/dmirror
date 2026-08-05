@@ -36,10 +36,10 @@ MainFrame::MainFrame()
     auto* ctrlPanel = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
     auto* ctrlSizer = new wxBoxSizer(wxHORIZONTAL);
     auto* startButton = new wxButton(ctrlPanel, wxID_ANY, "Start");
-    auto* cancelButton = new wxButton(ctrlPanel, wxID_ANY, "Cancel");
+    auto* quitButton = new wxButton(ctrlPanel, wxID_ANY, "Quit");
     ctrlSizer->AddStretchSpacer();
     ctrlSizer->Add(startButton, 0, wxBOTTOM | wxCENTER, 8);
-    ctrlSizer->Add(cancelButton, 0, wxBOTTOM | wxCENTER, 8);
+    ctrlSizer->Add(quitButton, 0, wxBOTTOM | wxCENTER, 8);
     ctrlSizer->AddStretchSpacer();
     ctrlPanel->SetSizer(ctrlSizer);
 
@@ -50,7 +50,7 @@ MainFrame::MainFrame()
     panel->SetSizer(sizerMain);
     
     startButton->Bind(wxEVT_BUTTON, &DMirror::OnStartClicked, &wxGetApp());
-    cancelButton->Bind(wxEVT_BUTTON, &DMirror::OnCancelClicked, &wxGetApp());
+    quitButton->Bind(wxEVT_BUTTON, &MainFrame::OnExit, this);
 }
 
 void MainFrame::OnExit(wxCommandEvent& event)

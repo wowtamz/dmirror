@@ -118,11 +118,6 @@ void DMirror::StartCopy()
     progDialog->ShowModal();
 }
 
-void DMirror::OnCancelClicked(wxCommandEvent& event)
-{
-    std::cout << "Cancel button clicked!" << std::endl;
-}
-
 void DMirror::OnSourceDirChanged(wxFileDirPickerEvent& event)
 {
     srcDirPath = event.GetPath();
