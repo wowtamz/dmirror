@@ -51,38 +51,63 @@ void DMirror::StartCopy()
             event.Skip();
             return;
         }
-
+        
         std::string src = srcDirPath.ToStdString();
         std::string dst = dstDirPath.ToStdString();
 
-        std::thread([this, progDialog, src, dst]()
+        auto cancelled = progDialog->GetCancellationFlag();
+
+        std::thread([this, progDialog, cancelled, src, dst]()
         {
-            bool success = dmirror_copy_dir(src, dst,
+            CopyResult result = dmirror_copy_dir(src, dst,
                 [progDialog](int current, int total)
                 {
                     wxGetApp().CallAfter([progDialog, current, total]()
                     {
-                        progDialog->progressBar->SetRange(total);
-                        progDialog->progressBar->SetValue(current);
+                        progDialog->SetRange(total);
+                        progDialog->SetProgress(current);
                     });
-
                     std::cout << "Progress: " << current << "/" << total << std::endl;
+                },
+                [cancelled]()
+                {
+                    return cancelled->load();
                 }
             );
-            
-            if (!success) {
-                std::cerr << "Failed to copy directory contents from " << srcDirPath << " to " << dstDirPath << std::endl;
-                
-                wxMessageBox(
-                    "The copy operation has failed to copy all files. Check the console output for details.",
-                    "Copy Operation Failed",
-                    wxOK | wxICON_EXCLAMATION,
-                    frame
-                );
-                return;
-            }
 
-            std::cout << "Successfully copied directory contents from " << srcDirPath << " to " << dstDirPath << std::endl;
+            switch(result)
+            {
+                case CopyResult::Success:
+                    std::cout << "Successfully copied directory contents from " << srcDirPath << " to " << dstDirPath << std::endl;
+                        wxMessageBox(
+                            "The copy operation has completed successfully.",
+                            "Copy Operation Completed",
+                            wxOK | wxICON_WARNING,
+                            frame
+                    );
+                    break;
+                
+                case CopyResult::Cancelled:
+                    std::cout << "Cancelled copying directory contents from " << srcDirPath << " to " << dstDirPath << std::endl;
+                    wxMessageBox(
+                        "The copy operation has cancelled.",
+                        "Information",
+                        wxOK | wxICON_EXCLAMATION,
+                        frame
+                    );
+                    break;
+                
+                case CopyResult::Failed:
+                    std::cerr << "Failed to copy directory contents from " << srcDirPath << " to " << dstDirPath << std::endl;
+                    wxMessageBox(
+                        "The copy operation has failed to copy all files. Check the console output for details.",
+                        "Copy Operation Failed",
+                        wxOK | wxICON_EXCLAMATION,
+                        frame
+                    );
+                    break;
+            }
+            
             progDialog->EndModal(0);
 
         }).detach();
@@ -91,13 +116,6 @@ void DMirror::StartCopy()
     });
 
     progDialog->ShowModal();
-
-    wxMessageBox(
-            "The copy operation has completed successfully.",
-            "Copy Operation Completed",
-            wxOK | wxICON_WARNING,
-            frame
-    );
 }
 
 void DMirror::OnCancelClicked(wxCommandEvent& event)

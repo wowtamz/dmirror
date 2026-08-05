@@ -4,6 +4,14 @@
 #include <filesystem>
 #include <fstream>
 
+
+enum class CopyResult
+{
+    Success,
+    Failed,
+    Cancelled
+};
+
 std::string dmirror_get_file_sig(const std::string& file_path)
 {
     std::error_code ec;
@@ -57,7 +65,7 @@ bool dmirror_copy_file(const std::string& src_path, const std::string& dest_path
 }
 
 
-bool dmirror_copy_dir(const std::string& src_path, const std::string& dest_path, std::function<void(int current, int total)> progress_callback = nullptr)
+CopyResult dmirror_copy_dir(const std::string& src_path, const std::string& dest_path, std::function<void(int current, int total)> progress_callback = nullptr, std::function<bool()>is_cancelled = nullptr)
 {
     std::filesystem::create_directory(dest_path);
 
@@ -75,6 +83,10 @@ bool dmirror_copy_dir(const std::string& src_path, const std::string& dest_path,
     }
 
     for (const auto& element : std::filesystem::recursive_directory_iterator(src_path)) {
+
+        if (is_cancelled != nullptr && is_cancelled()) {
+            return CopyResult::Cancelled;
+        }
 
         std::string relative_path = std::filesystem::relative(element.path(), src_path).string();
 
@@ -97,11 +109,11 @@ bool dmirror_copy_dir(const std::string& src_path, const std::string& dest_path,
             }
             if (try_count == 3) {
                 std::cerr << "Failed to copy file after 3 attempts: " << element.path() << std::endl;
-                return false;
+                return CopyResult::Failed;
             }
         }
     }
 
-    return true;
+    return CopyResult::Success;
 }
 
