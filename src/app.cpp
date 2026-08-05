@@ -1,6 +1,10 @@
 #include "app.h"
 #include "gui/main_frame.h"
+#include "gui/dialog/progress_dialog.h"
 #include "lib/dmirror.h"
+
+#include <thread>
+#include <chrono>
 
 bool DMirror::OnInit()
 {
@@ -36,25 +40,57 @@ void DMirror::OnStartClicked(wxCommandEvent& event)
 
 void DMirror::StartCopy()
 {
-    bool success = dmirror_copy_dir(srcDirPath.ToUTF8().data(), dstDirPath.ToUTF8().data(),
-        [this](int current, int total)
-        {
-            std::cout << "Progress: " << current << "/" << total << std::endl;
-        }
-    );
+    auto* progDialog = new ProgressDialog(frame);
+    
+    
+    progDialog->Bind(wxEVT_SHOW, [&](wxShowEvent& event)
+    {
 
-    if (!success) {
-        std::cerr << "Failed to copy directory contents from " << srcDirPath << " to " << dstDirPath << std::endl;
-        wxMessageBox(
-            "The copy operation has failed to copy all files. Check the console output for details.",
-            "Copy Operation Failed",
-            wxOK | wxICON_EXCLAMATION,
-            frame
-        );
-        return;
-    } else {
-        std::cout << "Successfully copied directory contents from " << srcDirPath << " to " << dstDirPath << std::endl;
-    }
+        // Ignore the event if dialog is being hidden
+        if (!event.IsShown()) {
+            event.Skip();
+            return;
+        }
+
+        std::string src = srcDirPath.ToStdString();
+        std::string dst = dstDirPath.ToStdString();
+
+        std::thread([this, progDialog, src, dst]()
+        {
+            bool success = dmirror_copy_dir(src, dst,
+                [progDialog](int current, int total)
+                {
+                    wxGetApp().CallAfter([progDialog, current, total]()
+                    {
+                        progDialog->progressBar->SetRange(total);
+                        progDialog->progressBar->SetValue(current);
+                    });
+
+                    std::cout << "Progress: " << current << "/" << total << std::endl;
+                }
+            );
+            
+            if (!success) {
+                std::cerr << "Failed to copy directory contents from " << srcDirPath << " to " << dstDirPath << std::endl;
+                
+                wxMessageBox(
+                    "The copy operation has failed to copy all files. Check the console output for details.",
+                    "Copy Operation Failed",
+                    wxOK | wxICON_EXCLAMATION,
+                    frame
+                );
+                return;
+            }
+
+            std::cout << "Successfully copied directory contents from " << srcDirPath << " to " << dstDirPath << std::endl;
+            progDialog->EndModal(0);
+
+        }).detach();
+
+        event.Skip();        
+    });
+
+    progDialog->ShowModal();
 
     wxMessageBox(
             "The copy operation has completed successfully.",
