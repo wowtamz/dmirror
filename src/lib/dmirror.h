@@ -14,6 +14,11 @@ enum class CopyResult
 
 std::string dmirror_get_file_sig(const std::string& file_path)
 {
+
+    if (!std::filesystem::exists(file_path)) {
+        return "";
+    }
+    
     std::error_code ec;
     uintmax_t size = std::filesystem::file_size(file_path, ec);
     if (ec) {
