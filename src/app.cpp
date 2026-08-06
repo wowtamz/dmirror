@@ -5,10 +5,12 @@
 
 #include <thread>
 #include <chrono>
+#include <wx/stdpaths.h>
 
 bool DMirror::OnInit()
 {
     wxInitAllImageHandlers();
+    CreateAppDataDir();
 
     frame = new MainFrame();
 
@@ -143,4 +145,22 @@ void DMirror::OnDestinationDirChanged(wxFileDirPickerEvent& event)
 {
     this->dstDirPath = event.GetPath();
     wxLogDebug("Destination Directory changed to %s", dstDirPath.ToStdString());
+}
+
+void DMirror::CreateAppDataDir()
+{
+    std::error_code ec;
+    std::filesystem::create_directories(DMirror::GetAppDataPath(), ec);
+
+    if (ec)
+    {
+        wxLogError("Failed to create app data directory: %s", ec.message());
+    }
+}
+
+std::filesystem::path DMirror::GetAppDataPath()
+{
+    return std::filesystem::path(
+        wxStandardPaths::Get().GetUserDataDir().ToStdString()
+    );
 }
