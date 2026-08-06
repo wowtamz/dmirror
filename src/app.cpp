@@ -27,7 +27,7 @@ void DMirror::OnStartClicked(wxCommandEvent& event)
         );
         return;
     }
-    
+
     if (srcDirPath == dstDirPath) {
         wxMessageBox(
             "Source and destionation directories cannot be the same. Please specify separate source and destination directory before starting the copy operation.",
@@ -44,12 +44,14 @@ void DMirror::OnStartClicked(wxCommandEvent& event)
         wxYES_NO | wxICON_INFORMATION,
         frame
     );
-    std::cout << "Start button clicked!" << std::endl;
+
     StartCopy();
 }
 
 void DMirror::StartCopy()
 {
+    wxLogDebug("Starting copy operation from '%s' to '%s'", srcDirPath, dstDirPath);
+
     auto* progDialog = new ProgressDialog(frame);
     
     progDialog->Bind(wxEVT_SHOW, [&](wxShowEvent& event)
@@ -76,7 +78,7 @@ void DMirror::StartCopy()
                         progDialog->SetRange(total);
                         progDialog->SetProgress(current);
                     });
-                    std::cout << "Progress: " << current << "/" << total << std::endl;
+                    wxLogDebug("Copy progress: %d/%d", current, total);
                 },
                 [cancelled]()
                 {
@@ -87,17 +89,17 @@ void DMirror::StartCopy()
             switch(result)
             {
                 case CopyResult::Success:
-                    std::cout << "Successfully copied directory contents from " << srcDirPath << " to " << dstDirPath << std::endl;
-                        wxMessageBox(
-                            "The copy operation has completed successfully.",
-                            "Copy Operation Completed",
-                            wxOK | wxICON_WARNING,
-                            frame
+                    wxLogDebug("Successfully copied directory contents from '%s' to '%s'", src, dst);
+                    wxMessageBox(
+                        "The copy operation has completed successfully.",
+                        "Copy Operation Completed",
+                        wxOK | wxICON_WARNING,
+                        frame
                     );
                     break;
                 
                 case CopyResult::Cancelled:
-                    std::cout << "Cancelled copying directory contents from " << srcDirPath << " to " << dstDirPath << std::endl;
+                    wxLogDebug("Cancelled copying directory contents from '%s' to '%s'", src, dst);
                     wxMessageBox(
                         "The copy operation has cancelled.",
                         "Information",
@@ -107,11 +109,11 @@ void DMirror::StartCopy()
                     break;
                 
                 case CopyResult::Failed:
-                    std::cerr << "Failed to copy directory contents from " << srcDirPath << " to " << dstDirPath << std::endl;
+                    wxLogDebug("Failed to copy directory contents from '%s' to '%s'", src, dst);
                     wxMessageBox(
                         "The copy operation has failed to copy all files. Check the console output for details.",
                         "Copy Operation Failed",
-                        wxOK | wxICON_EXCLAMATION,
+                        wxOK | wxICON_ERROR,
                         frame
                     );
                     break;
@@ -133,11 +135,11 @@ void DMirror::StartCopy()
 void DMirror::OnSourceDirChanged(wxFileDirPickerEvent& event)
 {
     srcDirPath = event.GetPath();
-    std::cout << "Source Directory changed to " << srcDirPath.ToUTF8().data() << std::endl;
+    wxLogDebug("Source Directory changed to %s", srcDirPath.ToStdString());
 }
 
 void DMirror::OnDestinationDirChanged(wxFileDirPickerEvent& event)
 {
     this->dstDirPath = event.GetPath();
-    std::cout << "Destination Directory changed to " << dstDirPath.ToUTF8().data() << std::endl;
+    wxLogDebug("Destination Directory changed to %s", dstDirPath.ToStdString());
 }
