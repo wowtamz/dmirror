@@ -15,7 +15,6 @@ class ProgressDialog : public wxDialog
         std::shared_ptr<std::atomic<bool>> GetCancellationFlag();
     
     private:
-        wxString text;
         wxGauge* progressBar;
         wxStaticText* mainLabel;
         wxStaticText* progressLabel;

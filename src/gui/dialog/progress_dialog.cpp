@@ -3,6 +3,7 @@
 
 #include "progress_dialog.h"
 
+const wxString LABEL_TEXT = "Scanned a total of %d files and %d changed.";
 
 ProgressDialog::ProgressDialog(wxWindow* parent) : wxDialog(parent, wxID_ANY, "Progress", wxDefaultPosition, wxSize(400, 200))
 {
@@ -11,9 +12,7 @@ ProgressDialog::ProgressDialog(wxWindow* parent) : wxDialog(parent, wxID_ANY, "P
 
     auto* sizer = new wxBoxSizer(wxVERTICAL);
 
-    text = "Scanned a total of %d files and %d changed."
-    ;
-    wxString str = wxString::Format(text, 0, 0);
+    wxString str = wxString::Format(LABEL_TEXT, 0, 0);
     mainLabel = new wxStaticText(this, wxID_ANY, str);
     progressLabel = new wxStaticText(this, wxID_ANY, "Copying 0/0");
     progressBar = new wxGauge(this, wxID_ANY, 100);
@@ -48,7 +47,7 @@ void ProgressDialog::SetRange(const int& range)
 void ProgressDialog::SetTotal(const int& total)
 {
     int range = progressBar->GetRange();
-    wxString str = wxString::Format(text, total, range);
+    wxString str = wxString::Format(LABEL_TEXT, total, range);
     mainLabel->SetLabel(str);
 }
 
