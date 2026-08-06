@@ -4,13 +4,15 @@
 #include "main_frame.h"
 #include "menu_bar.h"
 
+#include "app.h"
 #include "icon.h"
+#include "util/image.h"
 #include "dialog/about_dialog.h"
-#include "../util/image.h"
+#include "gui/dir_picker_panel.h"
 
 MainFrame::MainFrame()
     : wxFrame(nullptr, wxID_ANY, "DMirror", wxDefaultPosition, wxSize(512, 256))
-{    
+{
 
     wxBitmap bitmap = LoadBitmapFromResource(icon_png, icon_png_len);
 
@@ -29,24 +31,26 @@ MainFrame::MainFrame()
 
     auto* panel = new wxPanel(this);
 
-    m_button = new wxButton(panel, wxID_ANY, "Click Me!");
+    auto* dirPickerPanel = new DirPickerPanel(panel);
 
-    auto* sizer = new wxBoxSizer(wxVERTICAL);
-    sizer->Add(m_button, 0, wxALL | wxCENTER, 60);
+    auto* ctrlPanel = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
+    auto* ctrlSizer = new wxBoxSizer(wxHORIZONTAL);
+    auto* startButton = new wxButton(ctrlPanel, wxID_ANY, "Start");
+    auto* quitButton = new wxButton(ctrlPanel, wxID_ANY, "Quit");
+    ctrlSizer->AddStretchSpacer();
+    ctrlSizer->Add(startButton, 0, wxBOTTOM | wxCENTER, 8);
+    ctrlSizer->Add(quitButton, 0, wxBOTTOM | wxCENTER, 8);
+    ctrlSizer->AddStretchSpacer();
+    ctrlPanel->SetSizer(ctrlSizer);
 
-    panel->SetSizer(sizer);
+    auto* sizerMain = new wxBoxSizer(wxVERTICAL);
+    sizerMain->Add(dirPickerPanel, 1, wxEXPAND | wxALL, 10);
+    sizerMain->Add(ctrlPanel, 0, wxEXPAND | wxALL, 10);
 
-    m_button->Bind(wxEVT_BUTTON, &MainFrame::OnButtonClicked, this);
-}
-
-void MainFrame::OnButtonClicked(wxCommandEvent& event)
-{
-    wxMessageBox(
-            "You clicked the button!",
-            "Hello World!",
-            wxOK | wxICON_INFORMATION,
-            this
-    );
+    panel->SetSizer(sizerMain);
+    
+    startButton->Bind(wxEVT_BUTTON, &DMirror::OnStartClicked, &wxGetApp());
+    quitButton->Bind(wxEVT_BUTTON, &MainFrame::OnExit, this);
 }
 
 void MainFrame::OnExit(wxCommandEvent& event)
