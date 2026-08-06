@@ -65,24 +65,28 @@ bool dmirror_copy_file(const std::string& src_path, const std::string& dst_path)
 }
 
 
-CopyResult dmirror_copy_dir(const std::string& src_path, const std::string& dst_path, std::function<void(int current, int total)> progress_callback = nullptr, std::function<bool()>is_cancelled = nullptr)
+CopyResult dmirror_copy_dir(const std::string& src_path, const std::string& dst_path, std::function<void(int current, int total, int scanned)> progress_callback = nullptr, std::function<bool()>is_cancelled = nullptr)
 {
     std::filesystem::create_directory(dst_path);
 
     int current = 0;
     int total = 0;
+    int scanned = 0;
 
     for (const auto& element : std::filesystem::recursive_directory_iterator(src_path)) {
        
         std::string relative_path = std::filesystem::relative(element.path(), src_path).string();
 
-        if (element.is_regular_file() && !dmirror_cmp_files(src_path + "/" + relative_path, dst_path + "/" + relative_path)) {
-            total++;
+        if (element.is_regular_file()) {
+            scanned++;
+            if (!dmirror_cmp_files(src_path + "/" + relative_path, dst_path + "/" + relative_path)) {
+                total++;
+            }
         }
     }
 
     if (progress_callback != nullptr) {
-        progress_callback(current, total);
+        progress_callback(current, total, scanned);
     }
 
     for (const auto& element : std::filesystem::recursive_directory_iterator(src_path)) {
@@ -101,14 +105,14 @@ CopyResult dmirror_copy_dir(const std::string& src_path, const std::string& dst_
                 std::cout << "Files are identical, skipping copy: " << src_path << " -> " << dst_path << std::endl;
                 break;
             }
-            
+
             int try_count = 0;
             while (try_count < 3) {
                 bool success = dmirror_copy_file(element.path().string(), dst_path + "/" + relative_path);
                 if (success) {
                     current++;
                     if (progress_callback != nullptr) {
-                        progress_callback(current, total);
+                        progress_callback(current, total, scanned);
                     }
                     break;
                 } else {

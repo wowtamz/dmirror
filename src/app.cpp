@@ -71,12 +71,13 @@ void DMirror::StartCopy()
         std::thread([this, progDialog, cancelled, src, dst]()
         {
             CopyResult result = dmirror_copy_dir(src, dst,
-                [progDialog](int current, int total)
+                [progDialog](int current, int total, int scanned)
                 {
-                    wxGetApp().CallAfter([progDialog, current, total]()
+                    wxGetApp().CallAfter([progDialog, current, total, scanned]()
                     {
                         progDialog->SetRange(total);
                         progDialog->SetProgress(current);
+                        progDialog->SetTotal(scanned);
                     });
                     wxLogDebug("Copy progress: %d/%d", current, total);
                 },

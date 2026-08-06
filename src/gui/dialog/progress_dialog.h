@@ -10,11 +10,14 @@ class ProgressDialog : public wxDialog
         explicit ProgressDialog(wxWindow* parent);
         void SetProgress(const int& progress);
         void SetRange(const int& range);
+        void SetTotal(const int& total);
         void OnCancelClicked(wxCommandEvent& event);
         std::shared_ptr<std::atomic<bool>> GetCancellationFlag();
     
     private:
+        wxString text;
         wxGauge* progressBar;
+        wxStaticText* mainLabel;
         wxStaticText* progressLabel;
         std::shared_ptr<std::atomic<bool>> cancelled;
 };
