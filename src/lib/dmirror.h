@@ -44,11 +44,6 @@ bool dmirror_cmp_files(const std::string& file_x_path, const std::string& file_y
 
 bool dmirror_copy_file(const std::string& src_path, const std::string& dst_path)
 {
-    if (dmirror_cmp_files(src_path, dst_path)) {
-        std::cout << "Files are identical, skipping copy: " << src_path << " -> " << dst_path << std::endl;
-        return true;
-    }
-
     bool success = std::filesystem::copy_file(src_path, dst_path, std::filesystem::copy_options::overwrite_existing);
     if (!success) {
         std::cerr << "Failed to copy file from " << src_path << " to " << dst_path << std::endl;
@@ -78,7 +73,10 @@ CopyResult dmirror_copy_dir(const std::string& src_path, const std::string& dst_
     int total = 0;
 
     for (const auto& element : std::filesystem::recursive_directory_iterator(src_path)) {
-        if (element.is_regular_file()) {
+       
+        std::string relative_path = std::filesystem::relative(element.path(), src_path).string();
+
+        if (element.is_regular_file() && !dmirror_cmp_files(src_path + "/" + relative_path, dst_path + "/" + relative_path)) {
             total++;
         }
     }
@@ -98,6 +96,12 @@ CopyResult dmirror_copy_dir(const std::string& src_path, const std::string& dst_
         if (element.is_directory()) {
             std::filesystem::create_directory(dst_path + "/" + relative_path);
         } else if (element.is_regular_file()) {
+
+            if (dmirror_cmp_files(src_path + "/" + relative_path, dst_path + "/" + relative_path)) {
+                std::cout << "Files are identical, skipping copy: " << src_path << " -> " << dst_path << std::endl;
+                break;
+            }
+            
             int try_count = 0;
             while (try_count < 3) {
                 bool success = dmirror_copy_file(element.path().string(), dst_path + "/" + relative_path);
