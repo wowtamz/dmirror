@@ -9,7 +9,7 @@ Config::Config()
     data = {};
 }
 
-void Config::save(std::string& path)
+void Config::save(const std::string& path)
 {
     std::ofstream file(path);
 
@@ -18,11 +18,15 @@ void Config::save(std::string& path)
     }
 }
 
-void Config::read(std::string& path)
+bool Config::read(const std::string& path)
 {
     data.clear();
 
     std::ifstream file(path);
+
+    if (!file) {
+        return false;
+    }
 
     std::string line;
 
@@ -38,26 +42,28 @@ void Config::read(std::string& path)
 
         data[key] = value;
     }
+
+    return true;
 }
 
-void Config::add(std::string& key, std::string& value)
+void Config::add(const std::string& key, const std::string& value)
 {
     data[key] = value;
 }
 
-void Config::update(std::string& key, std::string& value)
+void Config::update(const std::string& key, const std::string& value)
 {
     if (data.find(key) != data.end()) {
         data[key] = value;
     }
 }
 
-void Config::remove(std::string& key)
+void Config::remove(const std::string& key)
 {
     data.erase(key);
 }
 
-std::string Config::get(std::string& key)
+std::string Config::get(const std::string& key)
 {
     return data.find(key) == data.end() ? nullptr : data[key];
 }
