@@ -7,12 +7,33 @@
 #include <chrono>
 #include <wx/stdpaths.h>
 
+const std::string CONFIG_FILE = "preferences.conf";
+
 bool DMirror::OnInit()
 {
     wxInitAllImageHandlers();
     CreateAppDataDir();
 
+    config = new Config();
+
+    if (!config->read(DMirror::GetConfigPath().string())) {
+        config->add("src_dir", "");
+        config->add("dst_dir", "");
+        config->save(DMirror::GetConfigPath().string());
+    }
+
     frame = new MainFrame();
+
+    auto srcDir = config->get("src_dir");
+    auto dstDir = config->get("dst_dir");
+
+    if (srcDir) {
+        srcDirPath = srcDir.value();
+    }
+
+    if (dstDir) {
+        dstDirPath = dstDir.value();
+    }
 
     frame->Show();
     return true;
@@ -46,6 +67,11 @@ void DMirror::OnStartClicked(wxCommandEvent& event)
         wxYES_NO | wxICON_INFORMATION,
         frame
     );
+
+    // Store current source and destination paths
+    config->update("src_dir", srcDirPath.ToStdString());
+    config->update("dst_dir", dstDirPath.ToStdString());
+    config->save(DMirror::GetConfigPath().string());
 
     StartCopy();
 }
@@ -147,6 +173,16 @@ void DMirror::OnDestinationDirChanged(wxFileDirPickerEvent& event)
     wxLogDebug("Destination Directory changed to %s", dstDirPath.ToStdString());
 }
 
+std::optional<std::string> DMirror::GetSavedSourceDir()
+{
+    return config->get("src_dir");
+}
+
+std::optional<std::string> DMirror::GetSavedDestinationDir()
+{
+    return config->get("dst_dir");
+}
+
 void DMirror::CreateAppDataDir()
 {
     std::error_code ec;
@@ -163,4 +199,9 @@ std::filesystem::path DMirror::GetAppDataPath()
     return std::filesystem::path(
         wxStandardPaths::Get().GetUserDataDir().ToStdString()
     );
+}
+
+std::filesystem::path DMirror::GetConfigPath()
+{
+    return DMirror::GetAppDataPath() / CONFIG_FILE;
 }
