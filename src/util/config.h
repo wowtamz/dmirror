@@ -1,6 +1,8 @@
 // config.h
 #pragma once
 
+#include <optional>
+
 class Config
 {
     public:
@@ -10,7 +12,7 @@ class Config
         void add(const std::string& key, const std::string& value);
         void update(const std::string& key, const std::string& value);
         void remove(const std::string& key);
-        std::string get(const std::string& key);
+        std::optional<std::string> get(const std::string& key);
     
     private:
         std::unordered_map<std::string, std::string> data;

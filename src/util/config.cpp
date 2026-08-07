@@ -63,7 +63,12 @@ void Config::remove(const std::string& key)
     data.erase(key);
 }
 
-std::string Config::get(const std::string& key)
+std::optional<std::string> Config::get(const std::string& key)
 {
-    return data.find(key) == data.end() ? nullptr : data[key];
+    auto it = data.find(key);
+
+    if (it == data.end())
+        return std::nullopt;
+
+    return it->second;
 }
