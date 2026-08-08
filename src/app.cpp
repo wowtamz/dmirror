@@ -19,20 +19,25 @@ bool DMirror::OnInit()
     if (!config->read(DMirror::GetConfigPath().string())) {
         config->add("src_dir", "");
         config->add("dst_dir", "");
+        config->add("keep_selection", "false");
         config->save(DMirror::GetConfigPath().string());
     }
 
     frame = new MainFrame();
 
-    auto srcDir = config->get("src_dir");
-    auto dstDir = config->get("dst_dir");
+    auto keepSelection = config->get("keep_selection").value_or("");
 
-    if (srcDir) {
-        srcDirPath = srcDir.value();
-    }
+    if (StringToBool(keepSelection)) {
+        auto srcDir = config->get("src_dir");
+        auto dstDir = config->get("dst_dir");
 
-    if (dstDir) {
-        dstDirPath = dstDir.value();
+        if (srcDir) {
+            srcDirPath = srcDir.value();
+        }
+
+        if (dstDir) {
+            dstDirPath = dstDir.value();
+        }
     }
 
     frame->Show();
@@ -68,10 +73,14 @@ void DMirror::OnStartClicked(wxCommandEvent& event)
         frame
     );
 
-    // Store current source and destination paths
-    config->update("src_dir", srcDirPath.ToStdString());
-    config->update("dst_dir", dstDirPath.ToStdString());
-    config->save(DMirror::GetConfigPath().string());
+    // Store current source and destination paths if keep selection is checked
+    auto keepSelection = config->get("keep_selection").value_or("");
+
+    if (StringToBool(keepSelection)) {
+        config->update("src_dir", srcDirPath.ToStdString());
+        config->update("dst_dir", dstDirPath.ToStdString());
+        config->save(DMirror::GetConfigPath().string());
+    }
 
     StartCopy();
 }
@@ -173,6 +182,13 @@ void DMirror::OnDestinationDirChanged(wxFileDirPickerEvent& event)
     wxLogDebug("Destination Directory changed to %s", dstDirPath.ToStdString());
 }
 
+void DMirror::OnKeepSelectionChanged(wxCommandEvent& event)
+{
+    std::string checked = BoolToString(event.IsChecked());
+    config->update("keep_selection", checked);
+    config->save(DMirror::GetConfigPath().string());
+}
+
 std::optional<std::string> DMirror::GetSavedSourceDir()
 {
     return config->get("src_dir");
@@ -181,6 +197,12 @@ std::optional<std::string> DMirror::GetSavedSourceDir()
 std::optional<std::string> DMirror::GetSavedDestinationDir()
 {
     return config->get("dst_dir");
+}
+
+bool DMirror::GetKeepSelection()
+{
+    std::string str = config->get("keep_selection").value_or("");
+    return StringToBool(str);
 }
 
 void DMirror::CreateAppDataDir()
@@ -204,4 +226,12 @@ std::filesystem::path DMirror::GetAppDataPath()
 std::filesystem::path DMirror::GetConfigPath()
 {
     return DMirror::GetAppDataPath() / CONFIG_FILE;
+}
+
+bool StringToBool(std::string& value) {
+    return value == "true" ? true : false;
+}
+
+std::string BoolToString(bool value) {
+    return value ? "true" : "false";
 }

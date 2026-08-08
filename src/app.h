@@ -16,9 +16,11 @@ class DMirror : public wxApp
         void OnStartClicked(wxCommandEvent& event);
         void OnSourceDirChanged(wxFileDirPickerEvent& event);
         void OnDestinationDirChanged(wxFileDirPickerEvent& event);
+        void OnKeepSelectionChanged(wxCommandEvent& event);
         void StartCopy();
         std::optional<std::string> GetSavedSourceDir();
         std::optional<std::string> GetSavedDestinationDir();
+        bool GetKeepSelection();
         static std::filesystem::path GetAppDataPath();
         static std::filesystem::path GetConfigPath();
     
@@ -29,5 +31,8 @@ class DMirror : public wxApp
         wxString dstDirPath;
         Config* config;
 };
+
+bool StringToBool(std::string& value);
+std::string BoolToString(bool value);
 
 wxDECLARE_APP(DMirror);

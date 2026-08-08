@@ -35,12 +35,21 @@ MainFrame::MainFrame()
 
     auto* ctrlPanel = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
     auto* ctrlSizer = new wxBoxSizer(wxHORIZONTAL);
+    auto* keepCheckbox = new wxCheckBox(ctrlPanel, wxID_ANY, "Keep selection for next time");
     auto* startButton = new wxButton(ctrlPanel, wxID_ANY, "Start");
     auto* quitButton = new wxButton(ctrlPanel, wxID_ANY, "Quit");
-    ctrlSizer->AddStretchSpacer();
-    ctrlSizer->Add(startButton, 0, wxBOTTOM | wxCENTER, 8);
-    ctrlSizer->Add(quitButton, 0, wxBOTTOM | wxCENTER, 8);
-    ctrlSizer->AddStretchSpacer();
+
+    auto* leftSizer = new wxBoxSizer(wxHORIZONTAL);
+    leftSizer->Add(keepCheckbox, 0, wxLEFT | wxBOTTOM, 8);
+
+    auto* centerSizer = new wxBoxSizer(wxHORIZONTAL);
+    //ctrlSizer->AddStretchSpacer();
+    centerSizer->Add(startButton, 0, wxBOTTOM | wxCENTER, 8);
+    centerSizer->Add(quitButton, 0, wxBOTTOM | wxCENTER, 8);
+    //ctrlSizer->AddStretchSpacer();
+    
+    ctrlSizer->Add(leftSizer, 1, wxEXPAND);
+    ctrlSizer->Add(centerSizer, 0, wxALIGN_CENTER);
     ctrlPanel->SetSizer(ctrlSizer);
 
     auto* sizerMain = new wxBoxSizer(wxVERTICAL);
@@ -49,6 +58,7 @@ MainFrame::MainFrame()
 
     panel->SetSizer(sizerMain);
     
+    keepCheckbox->Bind(wxEVT_CHECKBOX, &DMirror::OnKeepSelectionChanged, &wxGetApp());
     startButton->Bind(wxEVT_BUTTON, &DMirror::OnStartClicked, &wxGetApp());
     quitButton->Bind(wxEVT_BUTTON, &MainFrame::OnExit, this);
 }
