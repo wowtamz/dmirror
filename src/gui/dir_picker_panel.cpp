@@ -18,6 +18,12 @@ DirPickerPanel::DirPickerPanel(wxWindow* parent) : wxPanel(parent, wxID_ANY, wxD
         wxDefaultSize,
         wxDIRP_DEFAULT_STYLE | wxDIRP_USE_TEXTCTRL
     );
+
+    if (wxGetApp().GetKeepSelection()) {
+        auto srcPath = wxGetApp().GetSavedSourceDir();
+        srcPicker->SetPath(wxString(srcPath.value_or("")));
+    }
+
     srcSizer->Add(new wxStaticText(srcPanel, wxID_ANY, "Source Directory"), 0, wxBOTTOM | wxCENTER, 8);
     srcSizer->Add(srcPicker, 0, wxEXPAND);
     srcPanel->SetSizer(srcSizer);
@@ -33,6 +39,12 @@ DirPickerPanel::DirPickerPanel(wxWindow* parent) : wxPanel(parent, wxID_ANY, wxD
         wxDefaultSize,
         wxDIRP_DEFAULT_STYLE | wxDIRP_USE_TEXTCTRL
     );
+
+    if (wxGetApp().GetKeepSelection()) {
+        auto dstPath = wxGetApp().GetSavedDestinationDir();
+        dstPicker->SetPath(wxString(dstPath.value_or("")));
+    }
+
     dstSizer->Add(new wxStaticText(dstPanel, wxID_ANY, "Destination Directory"), 0, wxBOTTOM | wxCENTER, 8);
     dstSizer->Add(dstPicker, 0, wxEXPAND);
     dstPanel->SetSizer(dstSizer);

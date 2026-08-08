@@ -5,10 +5,47 @@
 
 #include <thread>
 #include <chrono>
+#include <wx/stdpaths.h>
+
+const std::string CONFIG_FILE = "preferences.conf";
+
+const std::unordered_map<std::string, std::string> defaults = {
+    {"src_dir", ""},
+    {"dst_dir", ""},
+    {"keep_selection", "false"}
+};
 
 bool DMirror::OnInit()
 {
     wxInitAllImageHandlers();
+    CreateAppDataDir();
+
+    config = new Config();
+
+    config->read(DMirror::GetConfigPath().string());
+
+    for (const auto& [key, defValue] : defaults) {
+        if (!config->has(key)) {
+            config->add(key, defValue);
+        }
+    }
+
+    config->save(DMirror::GetConfigPath().string());
+
+    auto keepSelection = config->get("keep_selection").value_or("");
+
+    if (StringToBool(keepSelection)) {
+        auto srcDir = config->get("src_dir");
+        auto dstDir = config->get("dst_dir");
+
+        if (srcDir) {
+            srcDirPath = srcDir.value();
+        }
+
+        if (dstDir) {
+            dstDirPath = dstDir.value();
+        }
+    }
 
     frame = new MainFrame();
 
@@ -44,6 +81,15 @@ void DMirror::OnStartClicked(wxCommandEvent& event)
         wxYES_NO | wxICON_INFORMATION,
         frame
     );
+
+    // Store current source and destination paths if keep selection is checked
+    auto keepSelection = config->get("keep_selection").value_or("");
+
+    if (StringToBool(keepSelection)) {
+        config->update("src_dir", srcDirPath.ToStdString());
+        config->update("dst_dir", dstDirPath.ToStdString());
+        config->save(DMirror::GetConfigPath().string());
+    }
 
     StartCopy();
 }
@@ -141,6 +187,68 @@ void DMirror::OnSourceDirChanged(wxFileDirPickerEvent& event)
 
 void DMirror::OnDestinationDirChanged(wxFileDirPickerEvent& event)
 {
-    this->dstDirPath = event.GetPath();
+    dstDirPath = event.GetPath();
     wxLogDebug("Destination Directory changed to %s", dstDirPath.ToStdString());
+}
+
+void DMirror::OnKeepSelectionChanged(wxCommandEvent& event)
+{
+    std::string checked = BoolToString(event.IsChecked());
+    config->update("keep_selection", checked);
+
+    if (event.IsChecked()) {
+        config->update("src_dir", srcDirPath.ToStdString());
+        config->update("dst_dir", dstDirPath.ToStdString());
+    } else {
+        config->update("src_dir", "");
+        config->update("dst_dir", "");
+    }
+    config->save(DMirror::GetConfigPath().string());
+}
+
+std::optional<std::string> DMirror::GetSavedSourceDir()
+{
+    return config->get("src_dir");
+}
+
+std::optional<std::string> DMirror::GetSavedDestinationDir()
+{
+    return config->get("dst_dir");
+}
+
+bool DMirror::GetKeepSelection()
+{
+    std::string str = config->get("keep_selection").value_or("");
+    return StringToBool(str);
+}
+
+void DMirror::CreateAppDataDir()
+{
+    std::error_code ec;
+    std::filesystem::create_directories(DMirror::GetAppDataPath(), ec);
+
+    if (ec)
+    {
+        wxLogError("Failed to create app data directory: %s", ec.message());
+    }
+}
+
+std::filesystem::path DMirror::GetAppDataPath()
+{
+    return std::filesystem::path(
+        wxStandardPaths::Get().GetUserDataDir().ToStdString()
+    );
+}
+
+std::filesystem::path DMirror::GetConfigPath()
+{
+    return DMirror::GetAppDataPath() / CONFIG_FILE;
+}
+
+bool StringToBool(std::string& value) {
+    return value == "true" ? true : false;
+}
+
+std::string BoolToString(bool value) {
+    return value ? "true" : "false";
 }
