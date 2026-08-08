@@ -71,6 +71,8 @@ if(WIN32)
     set(CPACK_PACKAGE_EXECUTABLES "DMirror" "DMirror")
     set(CPACK_NSIS_EXECUTABLES_DIRECTORY ".")
     set(CPACK_CREATE_DESKTOP_LINKS "DMirror")
+    set(CPACK_NSIS_INSTALL_ROOT "C:/Program Files")
+    set(CPACK_PACKAGE_INSTALL_DIRECTORY "DMirror")
     set(CPACK_NSIS_MUI_ICON
         "${CMAKE_CURRENT_SOURCE_DIR}/src/platform/windows/app.ico")
 elseif(APPLE)
