@@ -43,10 +43,8 @@ MainFrame::MainFrame()
     leftSizer->Add(keepCheckbox, 0, wxLEFT | wxBOTTOM, 8);
 
     auto* centerSizer = new wxBoxSizer(wxHORIZONTAL);
-    //ctrlSizer->AddStretchSpacer();
     centerSizer->Add(startButton, 0, wxBOTTOM | wxCENTER, 8);
     centerSizer->Add(quitButton, 0, wxBOTTOM | wxCENTER, 8);
-    //ctrlSizer->AddStretchSpacer();
     
     ctrlSizer->Add(leftSizer, 1, wxEXPAND);
     ctrlSizer->Add(centerSizer, 0, wxALIGN_CENTER);
@@ -57,6 +55,8 @@ MainFrame::MainFrame()
     sizerMain->Add(ctrlPanel, 0, wxEXPAND | wxALL, 10);
 
     panel->SetSizer(sizerMain);
+
+    keepCheckbox->SetValue(wxGetApp().GetKeepSelection());
     
     keepCheckbox->Bind(wxEVT_CHECKBOX, &DMirror::OnKeepSelectionChanged, &wxGetApp());
     startButton->Bind(wxEVT_BUTTON, &DMirror::OnStartClicked, &wxGetApp());

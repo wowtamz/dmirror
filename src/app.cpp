@@ -9,6 +9,12 @@
 
 const std::string CONFIG_FILE = "preferences.conf";
 
+const std::unordered_map<std::string, std::string> defaults = {
+    {"src_dir", ""},
+    {"dst_dir", ""},
+    {"keep_selection", "false"}
+};
+
 bool DMirror::OnInit()
 {
     wxInitAllImageHandlers();
@@ -16,14 +22,15 @@ bool DMirror::OnInit()
 
     config = new Config();
 
-    if (!config->read(DMirror::GetConfigPath().string())) {
-        config->add("src_dir", "");
-        config->add("dst_dir", "");
-        config->add("keep_selection", "false");
-        config->save(DMirror::GetConfigPath().string());
+    config->read(DMirror::GetConfigPath().string());
+
+    for (const auto& [key, defValue] : defaults) {
+        if (!config->has(key)) {
+            config->add(key, defValue);
+        }
     }
 
-    frame = new MainFrame();
+    config->save(DMirror::GetConfigPath().string());
 
     auto keepSelection = config->get("keep_selection").value_or("");
 
@@ -39,6 +46,8 @@ bool DMirror::OnInit()
             dstDirPath = dstDir.value();
         }
     }
+
+    frame = new MainFrame();
 
     frame->Show();
     return true;
@@ -178,7 +187,7 @@ void DMirror::OnSourceDirChanged(wxFileDirPickerEvent& event)
 
 void DMirror::OnDestinationDirChanged(wxFileDirPickerEvent& event)
 {
-    this->dstDirPath = event.GetPath();
+    dstDirPath = event.GetPath();
     wxLogDebug("Destination Directory changed to %s", dstDirPath.ToStdString());
 }
 
@@ -186,6 +195,14 @@ void DMirror::OnKeepSelectionChanged(wxCommandEvent& event)
 {
     std::string checked = BoolToString(event.IsChecked());
     config->update("keep_selection", checked);
+
+    if (event.IsChecked()) {
+        config->update("src_dir", srcDirPath.ToStdString());
+        config->update("dst_dir", dstDirPath.ToStdString());
+    } else {
+        config->update("src_dir", "");
+        config->update("dst_dir", "");
+    }
     config->save(DMirror::GetConfigPath().string());
 }
 

@@ -63,6 +63,12 @@ void Config::remove(const std::string& key)
     data.erase(key);
 }
 
+bool Config::has(const std::string& key)
+{
+    auto value = get(key);
+    return value == std::nullopt ? false : true;
+}
+
 std::optional<std::string> Config::get(const std::string& key)
 {
     auto it = data.find(key);
