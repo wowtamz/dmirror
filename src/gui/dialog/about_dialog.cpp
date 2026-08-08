@@ -1,7 +1,7 @@
 #include <wx/wx.h>
 #include "about_dialog.h"
 #include "icon.h"
-#include "../../util/image.h"
+#include "util/image.h"
 
 AboutDialog::AboutDialog(wxWindow* parent) : wxDialog(parent, wxID_ANY, "About", wxDefaultPosition, wxSize(400, 200))
 {
